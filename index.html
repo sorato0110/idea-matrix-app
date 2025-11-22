@@ -140,6 +140,105 @@
 
     .score { font-weight: 700; color: #0f172a; }
 
+    .chart-shell {
+      margin-top: 10px;
+      position: relative;
+      padding-bottom: 34px;
+    }
+
+    .chart-area {
+      position: relative;
+      height: min(360px, 60vw);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background-image:
+S        linear-gradient(to right, var(--border) 1px, transparent 1px),
+        linear-gradient(to top, var(--border) 1px, transparent 1px);
+      background-size: calc(100% / 5) calc(100% / 5);
+      overflow: hidden;
+    }
+
+    .chart-points {
+      position: absolute;
+      inset: 0;
+    }
+
+    .chart-point {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      padding: 6px 9px;
+      border-radius: 999px;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+      background: #fff;
+      border: 1px solid var(--border);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+
+    .axis-x,
+    .axis-y {
+      position: absolute;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .axis-x {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      bottom: -24px;
+      left: 0;
+      right: 0;
+    }
+
+    .axis-y {
+      display: grid;
+      grid-template-rows: repeat(5, 1fr);
+      top: 0;
+      bottom: 0;
+      left: -26px;
+    }
+
+    .axis-label {
+      position: absolute;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .axis-label-x {
+      bottom: -40px;
+      right: 4px;
+    }
+
+    .axis-label-y {
+      top: 4px;
+      left: -2px;
+      writing-mode: vertical-rl;
+    }
+
+    .chart-empty {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+      background: linear-gradient(135deg, rgba(255,255,255,0.88), rgba(255,255,255,0.6));
+      backdrop-filter: blur(2px);
+      visibility: hidden;
+    }
+
     @media (max-width: 640px) {
       form {
         grid-template-columns: 1fr;
@@ -197,6 +296,35 @@
     <section style="margin-top: 18px;" class="card">
       <header style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <div>
+          <h2 style="margin:0; font-size:1.1rem;">インパクト×コスト マップ</h2>
+          <small style="color: var(--muted);">縦軸：インパクト（上が大きい） / 横軸：コスト（右が大きい）</small>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-size:0.9rem;">
+          <span class="chip" style="background:#eff6ff; color:#1d4ed8;">美味しい実験</span>
+          <span class="chip" style="background:#ecfeff; color:#0e7490;">余裕があれば</span>
+          <span class="chip" style="background:#fff7ed; color:#c2410c;">大型案件</span>
+          <span class="chip" style="background:#fef2f2; color:#b91c1c;">やらない候補</span>
+        </div>
+      </header>
+      <div class="chart-shell">
+        <div class="chart-area" aria-live="polite">
+          <div class="chart-points" id="chart-points"></div>
+          <p class="chart-empty" id="chart-empty" aria-hidden="true">まだデータがありません</p>
+          <div class="axis-x" aria-hidden="true">
+            <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+          </div>
+          <div class="axis-y" aria-hidden="true">
+            <span>5</span><span>4</span><span>3</span><span>2</span><span>1</span>
+          </div>
+          <span class="axis-label axis-label-x">コスト</span>
+          <span class="axis-label axis-label-y">インパクト</span>
+        </div>
+      </div>
+    </section>
+
+    <section style="margin-top: 18px;" class="card">
+      <header style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div>
           <h2 style="margin:0; font-size:1.1rem;">登録済みアイデア</h2>
           <small style="color: var(--muted);">優先度スコアの高い順に表示</small>
         </div>
@@ -212,6 +340,8 @@
     const ideaForm = document.getElementById("idea-form");
     const ideasContainer = document.getElementById("ideas");
     const clearButton = document.getElementById("clear");
+    const chartPoints = document.getElementById("chart-points");
+    const chartEmpty = document.getElementById("chart-empty");
 
     const loadIdeas = () => {
       try {
@@ -239,11 +369,56 @@
       return "大型案件";
     };
 
+    const zoneColor = (zone) => {
+      switch (zone) {
+        case "美味しい実験":
+          return "#1d4ed8";
+        case "余裕があれば":
+          return "#0e7490";
+        case "大型案件":
+          return "#c2410c";
+        case "やらない候補":
+          return "#b91c1c";
+        default:
+          return "#111827";
+      }
+    };
+
+    const renderChart = (ideas) => {
+      chartPoints.innerHTML = "";
+
+      if (!ideas.length) {
+        chartEmpty.style.visibility = "visible";
+        return;
+      }
+
+      chartEmpty.style.visibility = "hidden";
+
+      ideas.forEach((idea) => {
+        const xRatio = (idea.cost - 1) / 4; // 0 (低コスト) 〜 1 (高コスト)
+        const yRatio = 1 - (idea.impact - 1) / 4; // 0 (高インパクト) を上に
+        const zone = classifyZone(idea.impact, idea.cost);
+        const color = zoneColor(zone);
+
+        const point = document.createElement("div");
+        point.className = "chart-point";
+        point.style.left = `${xRatio * 100}%`;
+        point.style.top = `${yRatio * 100}%`;
+        point.style.borderColor = color;
+
+        point.innerHTML = `<span class="dot" style="background:${color}"></span><span>${idea.title}</span>`;
+
+        chartPoints.appendChild(point);
+      });
+    };
+
     const renderIdeas = () => {
       const ideas = loadIdeas();
       ideasContainer.innerHTML = "";
 
       const sorted = [...ideas].sort((a, b) => b.score - a.score);
+
+      renderChart(sorted);
 
       if (sorted.length === 0) {
         ideasContainer.innerHTML = '<p style="margin:0;color:var(--muted);">まだアイデアがありません。フォームから追加してください。</p>';
