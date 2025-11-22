@@ -152,7 +152,7 @@
       border: 1px solid var(--border);
       border-radius: 12px;
       background-image:
-S        linear-gradient(to right, var(--border) 1px, transparent 1px),
+        linear-gradient(to right, var(--border) 1px, transparent 1px),
         linear-gradient(to top, var(--border) 1px, transparent 1px);
       background-size: calc(100% / 5) calc(100% / 5);
       overflow: hidden;
@@ -357,6 +357,9 @@ S        linear-gradient(to right, var(--border) 1px, transparent 1px),
       localStorage.setItem(STORAGE_KEY, JSON.stringify(ideas));
     };
 
+    // clamp（＝最小値と最大値の間に値を収める。端ギリギリのラベルが切れないようにする）
+    const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
     const classifyZone = (impact, cost) => {
       const highImpact = impact >= 4;
       const lowImpact = impact <= 3;
@@ -397,13 +400,16 @@ S        linear-gradient(to right, var(--border) 1px, transparent 1px),
       ideas.forEach((idea) => {
         const xRatio = (idea.cost - 1) / 4; // 0 (低コスト) 〜 1 (高コスト)
         const yRatio = 1 - (idea.impact - 1) / 4; // 0 (高インパクト) を上に
+        // 端ギリギリのラベルが切れないように、少し内側（8〜92%）に寄せる
+        const xPercent = clamp(xRatio * 100, 8, 92);
+        const yPercent = clamp(yRatio * 100, 8, 92);
         const zone = classifyZone(idea.impact, idea.cost);
         const color = zoneColor(zone);
 
         const point = document.createElement("div");
         point.className = "chart-point";
-        point.style.left = `${xRatio * 100}%`;
-        point.style.top = `${yRatio * 100}%`;
+        point.style.left = `${xPercent}%`;
+        point.style.top = `${yPercent}%`;
         point.style.borderColor = color;
 
         point.innerHTML = `<span class="dot" style="background:${color}"></span><span>${idea.title}</span>`;
