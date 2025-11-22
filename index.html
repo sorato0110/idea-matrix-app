@@ -340,6 +340,7 @@
     const ideaForm = document.getElementById("idea-form");
     const ideasContainer = document.getElementById("ideas");
     const clearButton = document.getElementById("clear");
+    const chartArea = document.querySelector(".chart-area");
     const chartPoints = document.getElementById("chart-points");
     const chartEmpty = document.getElementById("chart-empty");
 
@@ -391,32 +392,40 @@
       chartPoints.innerHTML = "";
 
       if (!ideas.length) {
-        chartEmpty.style.visibility = "visible";
-        return;
-      }
+      chartEmpty.style.visibility = "visible";
+      return;
+    }
 
-      chartEmpty.style.visibility = "hidden";
+    chartEmpty.style.visibility = "hidden";
 
-      ideas.forEach((idea) => {
-        const xRatio = (idea.cost - 1) / 4; // 0 (低コスト) 〜 1 (高コスト)
-        const yRatio = 1 - (idea.impact - 1) / 4; // 0 (高インパクト) を上に
-        // 端ギリギリのラベルが切れないように、少し内側（8〜92%）に寄せる
-        const xPercent = clamp(xRatio * 100, 8, 92);
-        const yPercent = clamp(yRatio * 100, 8, 92);
-        const zone = classifyZone(idea.impact, idea.cost);
-        const color = zoneColor(zone);
+    ideas.forEach((idea) => {
+      const xRatio = (idea.cost - 1) / 4; // 0 (低コスト) 〜 1 (高コスト)
+      const yRatio = 1 - (idea.impact - 1) / 4; // 0 (高インパクト) を上に
+      const zone = classifyZone(idea.impact, idea.cost);
+      const color = zoneColor(zone);
 
-        const point = document.createElement("div");
-        point.className = "chart-point";
-        point.style.left = `${xPercent}%`;
-        point.style.top = `${yPercent}%`;
-        point.style.borderColor = color;
+      const point = document.createElement("div");
+      point.className = "chart-point";
+      point.style.borderColor = color;
 
-        point.innerHTML = `<span class="dot" style="background:${color}"></span><span>${idea.title}</span>`;
+      point.innerHTML = `<span class="dot" style="background:${color}"></span><span>${idea.title}</span>`;
 
-        chartPoints.appendChild(point);
-      });
-    };
+      chartPoints.appendChild(point);
+
+      const yPercent = clamp(yRatio * 100, 8, 92); // 端寄りになりすぎないようにする
+
+      const areaWidth = chartArea?.getBoundingClientRect().width || 1;
+      const labelWidth = point.getBoundingClientRect().width;
+      // ラベルの幅も含めてチャート枠の内側に収めるための計算です
+      const minX = labelWidth / 2 + 8; // 左に8pxの余白を確保
+      const maxX = areaWidth - labelWidth / 2 - 8; // 右に8pxの余白を確保
+      const xPx = clamp(xRatio * areaWidth, minX, maxX);
+      const leftPercent = (xPx / areaWidth) * 100;
+
+      point.style.left = `${leftPercent}%`;
+      point.style.top = `${yPercent}%`;
+    });
+  };
 
     const renderIdeas = () => {
       const ideas = loadIdeas();
