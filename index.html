@@ -145,6 +145,30 @@
       font-size: 0.9rem;
     }
 
+    .zone-pill {
+      /* ゾーンフィルター用の小さなボタン（見た目は従来のラベル風） */
+      border: 1px solid var(--border);
+      box-shadow: none;
+      background: #f3f4f6;
+      color: var(--text);
+      padding: 6px 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background-color 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+    }
+
+    .zone-pill--active {
+      /* 選択中のゾーンは少し濃い背景と枠で強調 */
+      background: #dbeafe;
+      border-color: #2563eb;
+      color: #1d4ed8;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+    }
+
     .score { font-weight: 700; color: #0f172a; }
 
     .chart-shell {
@@ -314,10 +338,10 @@
           <small style="color: var(--muted);">縦軸：インパクト（上が大きい） / 横軸：コスト（右が大きい）</small>
         </div>
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-size:0.9rem;">
-          <span class="chip" style="background:#eff6ff; color:#1d4ed8;">美味しい実験</span>
-          <span class="chip" style="background:#ecfeff; color:#0e7490;">余裕があれば</span>
-          <span class="chip" style="background:#fff7ed; color:#c2410c;">大型案件</span>
-          <span class="chip" style="background:#fef2f2; color:#b91c1c;">やらない候補</span>
+          <button type="button" class="zone-pill" style="background:#eff6ff; color:#1d4ed8;" data-zone="sweet">美味しい実験</button>
+          <button type="button" class="zone-pill" style="background:#ecfeff; color:#0e7490;" data-zone="nice">余裕があれば</button>
+          <button type="button" class="zone-pill" style="background:#fff7ed; color:#c2410c;" data-zone="big">大型案件</button>
+          <button type="button" class="zone-pill" style="background:#fef2f2; color:#b91c1c;" data-zone="avoid">やらない候補</button>
         </div>
       </header>
       <div class="chart-shell">
@@ -357,6 +381,10 @@
     const chartArea = document.querySelector(".chart-area");
     const chartPoints = document.getElementById("chart-points");
     const chartEmpty = document.getElementById("chart-empty");
+    const zoneFilterButtons = document.querySelectorAll("[data-zone]");
+
+    // ゾーンフィルターのON/OFF状態を管理する（空集合のときは全件表示）
+    const activeZones = new Set();
 
     const loadIdeas = () => {
       try {
@@ -413,6 +441,20 @@
       }
     };
 
+    // ゾーン名（日本語）からフィルターキーを返す
+    const zoneLabelToKey = {
+      "美味しい実験": "sweet",
+      "余裕があれば": "nice",
+      "大型案件": "big",
+      "やらない候補": "avoid",
+    };
+
+    const getZoneKeyForIdea = (idea) => {
+      // impact と cost から判定したゾーンをフィルター用キーに変換する
+      const zoneLabel = classifyZone(idea.impact, idea.cost);
+      return zoneLabelToKey[zoneLabel] || "";
+    };
+
     const deleteIdeaById = (id) => {
       // 個別削除ボタンのクリックでこのアイデアだけを削除する
       const ideas = loadIdeas();
@@ -422,43 +464,71 @@
     };
 
     const renderChart = (ideas) => {
+      // フィルター状態に応じてマップに描画するアイデアを絞り込む（activeZones が空なら全件）
+      const filteredIdeas = ideas.filter((idea) => {
+        const zoneKey = getZoneKeyForIdea(idea);
+        if (!activeZones.size) return true;
+        return activeZones.has(zoneKey);
+      });
+
       chartPoints.innerHTML = "";
 
-      if (!ideas.length) {
-      chartEmpty.style.visibility = "visible";
-      return;
-    }
+      if (!filteredIdeas.length) {
+        chartEmpty.style.visibility = "visible";
+        return;
+      }
 
-    chartEmpty.style.visibility = "hidden";
+      chartEmpty.style.visibility = "hidden";
 
-    ideas.forEach((idea) => {
-      const xRatio = (idea.cost - 1) / 4; // 0 (低コスト) 〜 1 (高コスト)
-      const yRatio = 1 - (idea.impact - 1) / 4; // 0 (高インパクト) を上に
-      const zone = classifyZone(idea.impact, idea.cost);
-      const color = zoneColor(zone);
+        filteredIdeas.forEach((idea) => {
+          const xRatio = (idea.cost - 1) / 4; // 0 (低コスト) 〜 1 (高コスト)
+          const yRatio = 1 - (idea.impact - 1) / 4; // 0 (高インパクト) を上に
+          const zone = classifyZone(idea.impact, idea.cost);
+          const color = zoneColor(zone);
 
-      const point = document.createElement("div");
-      point.className = "chart-point";
-      point.style.borderColor = color;
+          const point = document.createElement("div");
+          point.className = "chart-point";
+          point.style.borderColor = color;
 
-      point.innerHTML = `<span class="dot" style="background:${color}"></span><span>${idea.title}</span>`;
+          point.innerHTML = `<span class="dot" style="background:${color}"></span><span>${idea.title}</span>`;
 
-      chartPoints.appendChild(point);
+          chartPoints.appendChild(point);
 
-      const yPercent = clamp(yRatio * 100, 8, 92); // 端寄りになりすぎないようにする
+          const yPercent = clamp(yRatio * 100, 8, 92); // 端寄りになりすぎないようにする
 
-      const areaWidth = chartArea?.getBoundingClientRect().width || 1;
-      const labelWidth = point.getBoundingClientRect().width;
-      // ラベルの幅も含めてチャート枠の内側に収めるための計算です
-      const minX = labelWidth / 2 + 8; // 左に8pxの余白を確保
-      const maxX = areaWidth - labelWidth / 2 - 8; // 右に8pxの余白を確保
-      const xPx = clamp(xRatio * areaWidth, minX, maxX);
-      const leftPercent = (xPx / areaWidth) * 100;
+          const areaWidth = chartArea?.getBoundingClientRect().width || 1;
+          const labelWidth = point.getBoundingClientRect().width;
+          // ラベルの幅も含めてチャート枠の内側に収めるための計算です
+          const minX = labelWidth / 2 + 8; // 左に8pxの余白を確保
+          const maxX = areaWidth - labelWidth / 2 - 8; // 右に8pxの余白を確保
+          const xPx = clamp(xRatio * areaWidth, minX, maxX);
+          const leftPercent = (xPx / areaWidth) * 100;
 
-      point.style.left = `${leftPercent}%`;
-      point.style.top = `${yPercent}%`;
+          point.style.left = `${leftPercent}%`;
+          point.style.top = `${yPercent}%`;
+        });
+      };
+
+    zoneFilterButtons.forEach((button) => {
+      const zoneKey = button.dataset.zone;
+      // 初期状態では全てOFF（activeZonesは空）だが、見た目を同期しておく
+      button.classList.toggle("zone-pill--active", activeZones.has(zoneKey));
+
+      button.addEventListener("click", () => {
+        // ゾーンフィルターのON/OFFを切り替え、マップのみを再描画する
+        if (activeZones.has(zoneKey)) {
+          activeZones.delete(zoneKey);
+        } else {
+          activeZones.add(zoneKey);
+        }
+
+        button.classList.toggle("zone-pill--active", activeZones.has(zoneKey));
+
+        const ideas = loadIdeas();
+        const sorted = [...ideas].sort((a, b) => b.score - a.score);
+        renderChart(sorted);
+      });
     });
-  };
 
     const renderIdeas = () => {
       const ideas = loadIdeas();
