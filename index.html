@@ -177,23 +177,13 @@
       padding-bottom: 34px;
     }
 
-    .map-title-controls {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-top: 6px;
-      align-items: center;
+    .map-title-editable {
+      cursor: text;
     }
 
-    .map-title-controls input[type="text"] {
-      min-width: 220px;
-      padding: 8px 10px;
-    }
-
-    .title-save-btn {
-      padding: 8px 10px;
-      box-shadow: none;
-      font-size: 0.95rem;
+    .map-title-editable:focus {
+      outline: 2px solid var(--border);
+      outline-offset: 2px;
     }
 
     .chart-area {
@@ -352,12 +342,8 @@
     <section style="margin-top: 18px;" class="card">
       <header style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px; gap:10px; flex-wrap:wrap;">
         <div>
-          <h2 id="map-title" style="margin:0; font-size:1.1rem;">インパクト×コスト マップ</h2>
+          <h2 id="map-title" class="map-title-editable" contenteditable="true" style="margin:0; font-size:1.1rem;">インパクト×コスト マップ</h2>
           <small style="color: var(--muted);">縦軸：インパクト（上が大きい） / 横軸：コスト（右が大きい）</small>
-          <div class="map-title-controls">
-            <input id="map-title-input" type="text" placeholder="例：インパクト×コスト マップ" aria-label="マップタイトル入力" />
-            <button id="map-title-save" type="button" class="title-save-btn">タイトルを保存</button>
-          </div>
         </div>
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-size:0.9rem;">
           <button type="button" class="zone-pill" style="background:#eff6ff; color:#1d4ed8;" data-zone="sweet">美味しい実験</button>
@@ -403,8 +389,6 @@
     const ideasContainer = document.getElementById("ideas");
     const clearButton = document.getElementById("clear");
     const mapTitleElement = document.getElementById("map-title");
-    const mapTitleInput = document.getElementById("map-title-input");
-    const mapTitleSaveButton = document.getElementById("map-title-save");
     const chartArea = document.querySelector(".chart-area");
     const chartPoints = document.getElementById("chart-points");
     const chartEmpty = document.getElementById("chart-empty");
@@ -442,6 +426,12 @@
     const saveMapTitle = (title) => {
       // マップタイトルを localStorage に保存する
       localStorage.setItem(MAP_TITLE_KEY, title);
+    };
+
+    const normalizeMapTitle = (title) => {
+      // 空文字を避けてデフォルトタイトルに戻す
+      const trimmed = (title || "").trim();
+      return trimmed || DEFAULT_MAP_TITLE;
     };
 
     const saveIdeas = (ideas) => {
@@ -498,13 +488,10 @@
     };
 
     const initializeMapTitle = () => {
-      // ページ読み込み時に保存済みタイトルを反映する（未保存ならデフォルトのまま）
+      // ページ読み込み時に保存済みタイトルを反映する（未保存ならデフォルトに戻す）
       const stored = loadMapTitle();
-      const effectiveTitle = stored || DEFAULT_MAP_TITLE;
+      const effectiveTitle = normalizeMapTitle(stored);
       applyMapTitle(effectiveTitle);
-      if (stored && mapTitleInput) {
-        mapTitleInput.value = stored;
-      }
     };
 
     const deleteIdeaById = (id) => {
@@ -582,14 +569,26 @@
       });
     });
 
-    mapTitleSaveButton.addEventListener("click", () => {
-      // マップタイトルを保存し、即座に見出しへ反映する
-      const inputTitle = mapTitleInput.value.trim();
-      const titleToSave = inputTitle || DEFAULT_MAP_TITLE; // 空ならデフォルトに戻す
-      applyMapTitle(titleToSave);
-      saveMapTitle(titleToSave);
-      mapTitleInput.value = titleToSave;
-    });
+    if (mapTitleElement) {
+      // 現在の見出しテキストを正規化して保存する
+      const persistMapTitle = () => {
+        const currentTitle = normalizeMapTitle(mapTitleElement.textContent);
+        applyMapTitle(currentTitle);
+        saveMapTitle(currentTitle);
+      };
+
+      // マップタイトルを blur 時に localStorage に保存する
+      mapTitleElement.addEventListener("blur", persistMapTitle);
+
+      mapTitleElement.addEventListener("keydown", (event) => {
+        // Enter 押下で確定して保存し、フォーカスを外す
+        if (event.key === "Enter") {
+          event.preventDefault();
+          persistMapTitle();
+          mapTitleElement.blur();
+        }
+      });
+    }
 
     const renderIdeas = () => {
       const ideas = loadIdeas();
