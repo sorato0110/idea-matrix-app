@@ -109,6 +109,13 @@
       background: #fff;
     }
 
+    .idea-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
     .idea h3 {
       margin: 0;
       font-size: 1.05rem;
@@ -176,6 +183,13 @@
       box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
       background: #fff;
       border: 1px solid var(--border);
+    }
+
+    .delete-btn {
+      background: #ef4444;
+      box-shadow: none;
+      padding: 8px 10px;
+      font-size: 0.9rem;
     }
 
     .dot {
@@ -347,7 +361,18 @@
     const loadIdeas = () => {
       try {
         const data = localStorage.getItem(STORAGE_KEY);
-        return data ? JSON.parse(data) : [];
+        const parsed = data ? JSON.parse(data) : [];
+
+        if (!Array.isArray(parsed)) return [];
+
+        // 古いデータに id が無い場合に付与して保存し直す
+        const normalized = parsed.map((idea) => (idea.id ? idea : { ...idea, id: crypto.randomUUID() }));
+        const needsSave = normalized.some((idea, idx) => idea.id !== parsed[idx]?.id);
+        if (needsSave) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+        }
+
+        return normalized;
       } catch (error) {
         console.error("Failed to load ideas", error);
         return [];
@@ -386,6 +411,14 @@
         default:
           return "#111827";
       }
+    };
+
+    const deleteIdeaById = (id) => {
+      // 個別削除ボタンのクリックでこのアイデアだけを削除する
+      const ideas = loadIdeas();
+      const next = ideas.filter((idea) => idea.id !== id);
+      saveIdeas(next);
+      renderIdeas();
     };
 
     const renderChart = (ideas) => {
@@ -449,13 +482,25 @@
             <h3>${idea.title}</h3>
             <small>${idea.memo ? idea.memo : "メモなし"}</small>
           </div>
-          <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
+          <div class="idea-actions">
             <span class="chip">インパクト: <strong>${idea.impact}</strong></span>
             <span class="chip">コスト: <strong>${idea.cost}</strong></span>
             <span class="chip">スコア: <span class="score">${idea.score}</span></span>
             <span class="zone">${zone}</span>
           </div>
         `;
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.textContent = "削除";
+        deleteButton.className = "delete-btn";
+        // 削除前に確認ダイアログを出し、OKなら対象のアイデアだけを削除する
+        deleteButton.addEventListener("click", () => {
+          if (!confirm("このアイデアを削除しますか？")) return;
+          deleteIdeaById(idea.id);
+        });
+
+        ideaEl.querySelector(".idea-actions").appendChild(deleteButton);
         ideasContainer.appendChild(ideaEl);
       });
     };
