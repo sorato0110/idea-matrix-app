@@ -3,16 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>インパクト×コスト アイデア選別</title>
+  <title>シフト希望回収＆自動割当</title>
   <style>
     :root {
-      color-scheme: light dark;
-      --bg: #f6f7fb;
+      --bg: #f7f8fb;
       --card: #ffffff;
-      --text: #111827;
-      --muted: #6b7280;
       --border: #e5e7eb;
+      --text: #0f172a;
+      --muted: #64748b;
       --accent: #2563eb;
+      --accent-weak: #dbeafe;
+      --danger: #f97316;
     }
 
     * { box-sizing: border-box; }
@@ -22,656 +23,575 @@
       font-family: "Inter", "Noto Sans JP", system-ui, -apple-system, sans-serif;
       background: var(--bg);
       color: var(--text);
-      min-height: 100vh;
       display: flex;
       justify-content: center;
+      min-height: 100vh;
     }
 
-    main {
-      width: min(960px, 100%);
-      padding: 24px 18px 32px;
+    main { width: min(1200px, 100%); padding: 20px; }
+
+    h1 { margin: 0 0 8px; }
+    p.lead { margin: 0 0 14px; color: var(--muted); }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      background: #e2e8f0;
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 12px;
     }
 
-    h1 {
-      margin: 0 0 12px;
-      font-size: clamp(1.6rem, 3vw, 2rem);
-      letter-spacing: -0.01em;
+    .tab {
+      padding: 10px 12px;
+      text-align: center;
+      font-weight: 700;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+      user-select: none;
     }
-
-    p.lead {
-      margin: 0 0 20px;
-      color: var(--muted);
-      font-size: 0.95rem;
-    }
+    .tab.active { background: var(--card); box-shadow: 0 6px 20px rgba(15, 23, 42, 0.1); }
 
     .card {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 18px;
-      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.04);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+      margin-bottom: 14px;
     }
 
-    form {
-      display: grid;
-      gap: 12px;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      margin-bottom: 22px;
-      align-items: end;
-    }
-
-    label {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      font-weight: 600;
-      font-size: 0.95rem;
-    }
-
-    input[type="text"], textarea, select {
-      padding: 10px 12px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      font-size: 1rem;
-      background: #fff;
-    }
-
-    textarea { resize: vertical; min-height: 80px; }
+    label { display: flex; flex-direction: column; gap: 6px; font-weight: 700; }
+    input, select, textarea { border-radius: 10px; border: 1px solid var(--border); padding: 10px 12px; font-size: 1rem; }
+    textarea { resize: vertical; min-height: 70px; }
+    input[type="number"] { width: 100%; }
 
     button {
-      padding: 12px 14px;
-      border: none;
-      border-radius: 10px;
       background: var(--accent);
       color: #fff;
-      font-size: 1rem;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 12px;
       font-weight: 700;
       cursor: pointer;
-      transition: transform 120ms ease, box-shadow 120ms ease;
-      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.25);
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
     }
-
+    button.secondary { background: #e2e8f0; color: #0f172a; box-shadow: none; }
     button:hover { transform: translateY(-1px); }
-    button:active { transform: translateY(0); }
 
-    .ideas {
+    .grid {
       display: grid;
-      gap: 12px;
-    }
-
-    .idea {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px 18px;
+      grid-template-columns: 130px repeat(7, 1fr);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 14px 16px;
-      background: #fff;
-    }
-
-    .idea-actions {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-      flex-wrap: wrap;
-    }
-
-    .idea h3 {
-      margin: 0;
-      font-size: 1.05rem;
-    }
-
-    .idea .zone {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-weight: 700;
-      background: #eff6ff;
-      color: #1d4ed8;
-      padding: 6px 10px;
-      border-radius: 999px;
-      width: fit-content;
-    }
-
-    .idea small { color: var(--muted); }
-
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: #f3f4f6;
-      font-size: 0.9rem;
-    }
-
-    .zone-pill {
-      /* ゾーンフィルター用の小さなボタン（見た目は従来のラベル風） */
-      border: 1px solid var(--border);
-      box-shadow: none;
-      background: #f3f4f6;
-      color: var(--text);
-      padding: 6px 10px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: background-color 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
-    }
-
-    .zone-pill--active {
-      /* 選択中のゾーンは少し濃い背景と枠で強調 */
-      background: #dbeafe;
-      border-color: #2563eb;
-      color: #1d4ed8;
-      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
-    }
-
-    .score { font-weight: 700; color: #0f172a; }
-
-    .chart-shell {
-      margin-top: 10px;
-      position: relative;
-      padding-bottom: 34px;
-    }
-
-    .map-title-editable {
-      cursor: text;
-    }
-
-    .map-title-editable:focus {
-      outline: 2px solid var(--border);
-      outline-offset: 2px;
-    }
-
-    .chart-area {
-      position: relative;
-      height: min(360px, 60vw);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background-image:
-        linear-gradient(to right, var(--border) 1px, transparent 1px),
-        linear-gradient(to top, var(--border) 1px, transparent 1px);
-      background-size: calc(100% / 5) calc(100% / 5);
       overflow: hidden;
-    }
-
-    .chart-points {
-      position: absolute;
-      inset: 0;
-    }
-
-    .chart-point {
-      position: absolute;
-      transform: translate(-50%, -50%);
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.9rem;
-      white-space: nowrap;
-      padding: 6px 9px;
-      border-radius: 999px;
-      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
       background: #fff;
-      border: 1px solid var(--border);
     }
+    .grid .header { background: #f8fafc; font-weight: 700; text-align: center; padding: 8px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); }
+    .grid .time { padding: 6px 8px; background: #f8fafc; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+    .slot { border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); padding: 6px; font-size: 0.85rem; cursor: pointer; min-height: 32px; }
+    .slot.selected { background: var(--accent-weak); color: #1d4ed8; font-weight: 700; }
 
-    .delete-btn {
-      background: #ef4444;
-      box-shadow: none;
-      padding: 8px 10px;
-      font-size: 0.9rem;
-    }
+    .positions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .pill { border: 1px solid var(--border); padding: 8px 10px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+    .pill input { width: 16px; height: 16px; }
 
-    .dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 999px;
-      display: inline-block;
-    }
+    .section-title { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 
-    .axis-x,
-    .axis-y {
-      position: absolute;
-      color: var(--muted);
-      font-size: 0.9rem;
-    }
+    .list { display: grid; gap: 8px; }
+    .row { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); align-items: center; }
 
-    .axis-x {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      bottom: -24px;
-      left: 0;
-      right: 0;
-    }
+    .badge { background: #f1f5f9; padding: 6px 10px; border-radius: 999px; font-weight: 700; }
+    .danger { color: #c2410c; font-weight: 700; }
 
-    .axis-y {
-      display: grid;
-      grid-template-rows: repeat(5, 1fr);
-      top: 0;
-      bottom: 0;
-      left: -26px;
-    }
+    .assign-table { width: 100%; border-collapse: collapse; }
+    .assign-table th, .assign-table td { border: 1px solid var(--border); padding: 8px; text-align: left; }
+    .assign-table th { background: #f8fafc; }
+    .missing { background: #fff1e6; color: #c2410c; font-weight: 700; }
+    .success { background: #ecfeff; color: #0e7490; font-weight: 700; }
 
-    .axis-label {
-      position: absolute;
-      color: var(--muted);
-      font-size: 0.9rem;
-      font-weight: 600;
-    }
-
-    .axis-label-x {
-      bottom: -40px;
-      right: 4px;
-    }
-
-    .axis-label-y {
-      top: 4px;
-      left: -2px;
-      writing-mode: vertical-rl;
-    }
-
-    .chart-empty {
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      margin: 0;
-      color: var(--muted);
-      font-size: 0.95rem;
-      background: linear-gradient(135deg, rgba(255,255,255,0.88), rgba(255,255,255,0.6));
-      backdrop-filter: blur(2px);
-      visibility: hidden;
-    }
-
-    @media (max-width: 640px) {
-      form {
-        grid-template-columns: 1fr;
-      }
-
-      .idea {
-        grid-template-columns: 1fr;
-      }
-    }
+    .flex { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
   </style>
 </head>
 <body>
   <main>
-    <section class="card">
-      <form id="idea-form" autocomplete="off">
-        <label>
-          タイトル
-          <input required id="title" name="title" type="text" placeholder="例：新しいオンボーディングフロー" />
-        </label>
-        <label>
-          メモ（任意）
-          <textarea id="memo" name="memo" placeholder="補足や背景をメモできます"></textarea>
-        </label>
-        <label>
-          インパクト（1〜5）
-          <select required id="impact" name="impact">
-            <option value="">選択してください</option>
-            <option value="5">5（とても高い）</option>
-            <option value="4">4（高い）</option>
-            <option value="3">3（中）</option>
-            <option value="2">2（低い）</option>
-            <option value="1">1（とても低い）</option>
-          </select>
-        </label>
-        <label>
-          コスト（1〜5）
-          <select required id="cost" name="cost">
-            <option value="">選択してください</option>
-            <option value="1">1（とても低い）</option>
-            <option value="2">2（低い）</option>
-            <option value="3">3（中）</option>
-            <option value="4">4（高い）</option>
-            <option value="5">5（とても高い）</option>
-          </select>
-        </label>
-        <div>
-          <button type="submit">保存</button>
-        </div>
-      </form>
-    </section>
+    <h1>希望回収 → 自動割当シフト</h1>
+    <p class="lead">スタッフの希望を集め、必要人数に合わせて自動配置するシンプルツール（ブラウザのみ、データはlocalStorage保存）。</p>
 
-    <section style="margin-top: 18px;" class="card">
-      <header style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px; gap:10px; flex-wrap:wrap;">
-        <div>
-          <h2 id="map-title" class="map-title-editable" contenteditable="true" style="margin:0; font-size:1.1rem;">インパクト×コスト マップ</h2>
-          <small style="color: var(--muted);">縦軸：インパクト（上が大きい） / 横軸：コスト（右が大きい）</small>
-        </div>
-        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-size:0.9rem;">
-          <button type="button" class="zone-pill" style="background:#eff6ff; color:#1d4ed8;" data-zone="sweet">美味しい実験</button>
-          <button type="button" class="zone-pill" style="background:#ecfeff; color:#0e7490;" data-zone="nice">余裕があれば</button>
-          <button type="button" class="zone-pill" style="background:#fff7ed; color:#c2410c;" data-zone="big">大型案件</button>
-          <button type="button" class="zone-pill" style="background:#fef2f2; color:#b91c1c;" data-zone="avoid">やらない候補</button>
-        </div>
-      </header>
-      <div class="chart-shell">
-        <div class="chart-area" aria-live="polite">
-          <div class="chart-points" id="chart-points"></div>
-          <p class="chart-empty" id="chart-empty" aria-hidden="true">まだデータがありません</p>
-          <div class="axis-x" aria-hidden="true">
-            <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
-          </div>
-          <div class="axis-y" aria-hidden="true">
-            <span>5</span><span>4</span><span>3</span><span>2</span><span>1</span>
-          </div>
-          <span class="axis-label axis-label-x">コスト</span>
-          <span class="axis-label axis-label-y">インパクト</span>
+    <div class="tabs">
+      <div class="tab active" id="tab-staff">1) スタッフ入力モード</div>
+      <div class="tab" id="tab-owner">2) 作成者モード</div>
+    </div>
+
+    <section class="card" id="staff-mode">
+      <div class="section-title">
+        <h2>スタッフ入力</h2>
+        <div class="flex">
+          <button class="secondary" id="week-prev">◀ 前の週</button>
+          <button class="secondary" id="week-next">次の週 ▶</button>
+          <span id="week-label" class="badge"></span>
         </div>
       </div>
+
+      <div class="row">
+        <label>
+          スタッフを選択（必須）
+          <select id="staff-select"></select>
+        </label>
+        <label>
+          希望ポジション（複数選択可）
+          <div id="staff-positions" class="positions"></div>
+        </label>
+      </div>
+
+      <h3>出られる時間帯（30分単位）</h3>
+      <div id="calendar" class="grid"></div>
+
+      <div class="flex" style="margin-top:12px;">
+        <button id="save-local">この端末に保存</button>
+        <button id="export-availability" class="secondary">希望をファイル書き出し（JSON）</button>
+      </div>
+      <p class="lead">※保存はこの端末のみ。ファイル書き出しで作成者に提出できます。</p>
     </section>
 
-    <section style="margin-top: 18px;" class="card">
-      <header style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <div>
-          <h2 style="margin:0; font-size:1.1rem;">登録済みアイデア</h2>
-          <small style="color: var(--muted);">優先度スコアの高い順に表示</small>
-        </div>
-        <button id="clear" type="button" style="background:#ef4444; box-shadow:none;">全件リセット</button>
-      </header>
-      <div id="ideas" class="ideas" aria-live="polite"></div>
+    <section class="card" id="owner-mode" style="display:none;">
+      <div class="section-title"><h2>作成者モード</h2></div>
+
+      <h3>スタッフ管理</h3>
+      <div class="row">
+        <label>名前<input type="text" id="add-name" placeholder="例：田中" /></label>
+        <label>可能ポジション（カンマ区切り）<input type="text" id="add-positions" placeholder="ホール,キッチン" /></label>
+        <label>週の上限時間（任意）<input type="number" id="add-max" min="0" placeholder="例：40" /></label>
+        <button id="add-staff">追加</button>
+      </div>
+      <div class="list" id="staff-list"></div>
+
+      <hr />
+      <h3>希望データ集約</h3>
+      <div class="flex">
+        <input type="file" id="import-files" multiple accept="application/json" />
+        <button class="secondary" id="import-btn">希望ファイルを読み込み</button>
+        <span id="import-summary" class="badge"></span>
+      </div>
+
+      <hr />
+      <h3>必要人数（ポジション×時間帯）</h3>
+      <div class="row">
+        <label>日付<input type="date" id="req-date" /></label>
+        <label>開始<input type="time" id="req-start" /></label>
+        <label>終了<input type="time" id="req-end" /></label>
+        <label>ポジション<input type="text" id="req-position" placeholder="ホール" /></label>
+        <label>必要人数<input type="number" min="1" id="req-needed" /></label>
+        <button id="add-req">追加</button>
+      </div>
+      <div class="list" id="req-list"></div>
+
+      <hr />
+      <div class="flex">
+        <button id="run-assign">自動割当を実行</button>
+        <button class="secondary" id="export-backup">全データを書き出し</button>
+        <input type="file" id="import-backup-file" accept="application/json" />
+        <button class="secondary" id="import-backup">バックアップ読み込み</button>
+      </div>
+      <p class="lead">ヒューリスティック：必要枠順→候補（可用＋ポジション一致）→割当時間が少ない人優先→同率はランダム。</p>
+
+      <h3>割当結果</h3>
+      <table class="assign-table" id="assign-table"></table>
     </section>
   </main>
 
   <script>
-    const STORAGE_KEY = "ideas";
-    const MAP_TITLE_KEY = "ideaMatrixMapTitle";
-    const DEFAULT_MAP_TITLE = "インパクト×コスト マップ";
-
-    const ideaForm = document.getElementById("idea-form");
-    const ideasContainer = document.getElementById("ideas");
-    const clearButton = document.getElementById("clear");
-    const mapTitleElement = document.getElementById("map-title");
-    const chartArea = document.querySelector(".chart-area");
-    const chartPoints = document.getElementById("chart-points");
-    const chartEmpty = document.getElementById("chart-empty");
-    const zoneFilterButtons = document.querySelectorAll("[data-zone]");
-
-    // ゾーンフィルターのON/OFF状態を管理する（空集合のときは全件表示）
-    const activeZones = new Set();
-
-    const loadIdeas = () => {
-      try {
-        const data = localStorage.getItem(STORAGE_KEY);
-        const parsed = data ? JSON.parse(data) : [];
-
-        if (!Array.isArray(parsed)) return [];
-
-        // 古いデータに id が無い場合に付与して保存し直す
-        const normalized = parsed.map((idea) => (idea.id ? idea : { ...idea, id: crypto.randomUUID() }));
-        const needsSave = normalized.some((idea, idx) => idea.id !== parsed[idx]?.id);
-        if (needsSave) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
-        }
-
-        return normalized;
-      } catch (error) {
-        console.error("Failed to load ideas", error);
-        return [];
+    const STORAGE_KEY = "shift_auto_v1";
+    const DEFAULT_POSITIONS = ["ホール", "キッチン", "洗い場", "ドリンク", "デリバリー"];
+    const timeSlots = (() => {
+      const slots = [];
+      for (let h = 6; h < 24; h++) {
+        slots.push(`${String(h).padStart(2, "0")}:00`, `${String(h).padStart(2, "0")}:30`);
       }
-    };
+      return slots;
+    })();
 
-    const loadMapTitle = () => {
-      // 保存済みのマップタイトルを localStorage から取得する
-      return localStorage.getItem(MAP_TITLE_KEY) || "";
-    };
+    const state = loadState();
+    let currentStaff = null;
+    let selectedWeekStart = state.currentWeekStart || weekStartStr(new Date());
+    let selectedSlots = new Set();
+    let selectedDesiredPositions = new Set();
 
-    const saveMapTitle = (title) => {
-      // マップタイトルを localStorage に保存する
-      localStorage.setItem(MAP_TITLE_KEY, title);
-    };
-
-    const normalizeMapTitle = (title) => {
-      // 空文字を避けてデフォルトタイトルに戻す
-      const trimmed = (title || "").trim();
-      return trimmed || DEFAULT_MAP_TITLE;
-    };
-
-    const saveIdeas = (ideas) => {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(ideas));
-    };
-
-    // clamp（＝最小値と最大値の間に値を収める。端ギリギリのラベルが切れないようにする）
-    const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
-
-    const classifyZone = (impact, cost) => {
-      const highImpact = impact >= 4;
-      const lowImpact = impact <= 3;
-      const lowCost = cost <= 2;
-      const highCost = cost >= 3;
-
-      if (highImpact && lowCost) return "美味しい実験";
-      if (lowImpact && highCost) return "やらない候補";
-      if (lowImpact && lowCost) return "余裕があれば";
-      return "大型案件";
-    };
-
-    const zoneColor = (zone) => {
-      switch (zone) {
-        case "美味しい実験":
-          return "#1d4ed8";
-        case "余裕があれば":
-          return "#0e7490";
-        case "大型案件":
-          return "#c2410c";
-        case "やらない候補":
-          return "#b91c1c";
-        default:
-          return "#111827";
+    function loadState() {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        try { return JSON.parse(stored); } catch (e) { console.warn("state parse error", e); }
       }
-    };
+      return { staffs: [], availabilities: [], requirements: [], assignments: [], currentWeekStart: weekStartStr(new Date()) };
+    }
+    function persist() { state.currentWeekStart = selectedWeekStart; localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 
-    // ゾーン名（日本語）からフィルターキーを返す
-    const zoneLabelToKey = {
-      "美味しい実験": "sweet",
-      "余裕があれば": "nice",
-      "大型案件": "big",
-      "やらない候補": "avoid",
-    };
+    function weekStartStr(date) {
+      const d = new Date(date);
+      const day = d.getDay();
+      const diff = (day + 6) % 7; // Monday start
+      d.setHours(0,0,0,0);
+      d.setDate(d.getDate() - diff);
+      return d.toISOString().slice(0,10);
+    }
 
-    const getZoneKeyForIdea = (idea) => {
-      // impact と cost から判定したゾーンをフィルター用キーに変換する
-      const zoneLabel = classifyZone(idea.impact, idea.cost);
-      return zoneLabelToKey[zoneLabel] || "";
-    };
+    function weekRangeLabel(startStr) {
+      const start = new Date(startStr);
+      const end = new Date(startStr);
+      end.setDate(start.getDate() + 6);
+      const fmt = (d) => `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`;
+      return `${fmt(start)} 〜 ${fmt(end)}`;
+    }
 
-    const applyMapTitle = (title) => {
-      // マップの見出しテキストを更新する
-      mapTitleElement.textContent = title;
-    };
-
-    const initializeMapTitle = () => {
-      // ページ読み込み時に保存済みタイトルを反映する（未保存ならデフォルトに戻す）
-      const stored = loadMapTitle();
-      const effectiveTitle = normalizeMapTitle(stored);
-      applyMapTitle(effectiveTitle);
-    };
-
-    const deleteIdeaById = (id) => {
-      // 個別削除ボタンのクリックでこのアイデアだけを削除する
-      const ideas = loadIdeas();
-      const next = ideas.filter((idea) => idea.id !== id);
-      saveIdeas(next);
-      renderIdeas();
-    };
-
-    const renderChart = (ideas) => {
-      // フィルター状態に応じてマップに描画するアイデアを絞り込む（activeZones が空なら全件）
-      const filteredIdeas = ideas.filter((idea) => {
-        const zoneKey = getZoneKeyForIdea(idea);
-        if (!activeZones.size) return true;
-        return activeZones.has(zoneKey);
+    function renderStaffSelect() {
+      const select = document.getElementById("staff-select");
+      select.innerHTML = "";
+      const placeholder = document.createElement("option");
+      placeholder.value = ""; placeholder.textContent = "スタッフを選択"; placeholder.disabled = true; placeholder.selected = true;
+      select.appendChild(placeholder);
+      state.staffs.forEach(s => {
+        const opt = document.createElement("option");
+        opt.value = s.id; opt.textContent = s.name;
+        select.appendChild(opt);
       });
+      if (currentStaff && state.staffs.find(s=>s.id===currentStaff)) select.value = currentStaff;
+    }
 
-      chartPoints.innerHTML = "";
-
-      if (!filteredIdeas.length) {
-        chartEmpty.style.visibility = "visible";
-        return;
-      }
-
-      chartEmpty.style.visibility = "hidden";
-
-        filteredIdeas.forEach((idea) => {
-          const xRatio = (idea.cost - 1) / 4; // 0 (低コスト) 〜 1 (高コスト)
-          const yRatio = 1 - (idea.impact - 1) / 4; // 0 (高インパクト) を上に
-          const zone = classifyZone(idea.impact, idea.cost);
-          const color = zoneColor(zone);
-
-          const point = document.createElement("div");
-          point.className = "chart-point";
-          point.style.borderColor = color;
-
-          point.innerHTML = `<span class="dot" style="background:${color}"></span><span>${idea.title}</span>`;
-
-          chartPoints.appendChild(point);
-
-          const yPercent = clamp(yRatio * 100, 8, 92); // 端寄りになりすぎないようにする
-
-          const areaWidth = chartArea?.getBoundingClientRect().width || 1;
-          const labelWidth = point.getBoundingClientRect().width;
-          // ラベルの幅も含めてチャート枠の内側に収めるための計算です
-          const minX = labelWidth / 2 + 8; // 左に8pxの余白を確保
-          const maxX = areaWidth - labelWidth / 2 - 8; // 右に8pxの余白を確保
-          const xPx = clamp(xRatio * areaWidth, minX, maxX);
-          const leftPercent = (xPx / areaWidth) * 100;
-
-          point.style.left = `${leftPercent}%`;
-          point.style.top = `${yPercent}%`;
+    function renderPositionsPicker() {
+      const container = document.getElementById("staff-positions");
+      container.innerHTML = "";
+      const staff = state.staffs.find(s => s.id === currentStaff);
+      const choices = staff ? staff.positions : DEFAULT_POSITIONS;
+      choices.forEach(pos => {
+        const label = document.createElement("label");
+        label.className = "pill";
+        const input = document.createElement("input");
+        input.type = "checkbox"; input.value = pos;
+        input.checked = selectedDesiredPositions.has(pos);
+        input.addEventListener("change", () => {
+          input.checked ? selectedDesiredPositions.add(pos) : selectedDesiredPositions.delete(pos);
         });
-      };
-
-    zoneFilterButtons.forEach((button) => {
-      const zoneKey = button.dataset.zone;
-      // 初期状態では全てOFF（activeZonesは空）だが、見た目を同期しておく
-      button.classList.toggle("zone-pill--active", activeZones.has(zoneKey));
-
-      button.addEventListener("click", () => {
-        // ゾーンフィルターのON/OFFを切り替え、マップのみを再描画する
-        if (activeZones.has(zoneKey)) {
-          activeZones.delete(zoneKey);
-        } else {
-          activeZones.add(zoneKey);
-        }
-
-        button.classList.toggle("zone-pill--active", activeZones.has(zoneKey));
-
-        const ideas = loadIdeas();
-        const sorted = [...ideas].sort((a, b) => b.score - a.score);
-        renderChart(sorted);
-      });
-    });
-
-    if (mapTitleElement) {
-      // 現在の見出しテキストを正規化して保存する
-      const persistMapTitle = () => {
-        const currentTitle = normalizeMapTitle(mapTitleElement.textContent);
-        applyMapTitle(currentTitle);
-        saveMapTitle(currentTitle);
-      };
-
-      // マップタイトルを blur 時に localStorage に保存する
-      mapTitleElement.addEventListener("blur", persistMapTitle);
-
-      mapTitleElement.addEventListener("keydown", (event) => {
-        // Enter 押下で確定して保存し、フォーカスを外す
-        if (event.key === "Enter") {
-          event.preventDefault();
-          persistMapTitle();
-          mapTitleElement.blur();
-        }
+        label.appendChild(input);
+        label.append(pos);
+        container.appendChild(label);
       });
     }
 
-    const renderIdeas = () => {
-      const ideas = loadIdeas();
-      ideasContainer.innerHTML = "";
+    function slotKey(dateStr, timeStr) { return `${dateStr}T${timeStr}`; }
 
-      const sorted = [...ideas].sort((a, b) => b.score - a.score);
+    function renderCalendar() {
+      const cal = document.getElementById("calendar");
+      cal.innerHTML = "";
+      const start = new Date(selectedWeekStart);
+      const days = Array.from({length:7}, (_,i)=>{
+        const d = new Date(start); d.setDate(start.getDate()+i); return d; });
 
-      renderChart(sorted);
-
-      if (sorted.length === 0) {
-        ideasContainer.innerHTML = '<p style="margin:0;color:var(--muted);">まだアイデアがありません。フォームから追加してください。</p>';
-        return;
-      }
-
-      sorted.forEach((idea) => {
-        const zone = classifyZone(idea.impact, idea.cost);
-        const ideaEl = document.createElement("article");
-        ideaEl.className = "idea";
-        ideaEl.innerHTML = `
-          <div>
-            <h3>${idea.title}</h3>
-            <small>${idea.memo ? idea.memo : "メモなし"}</small>
-          </div>
-          <div class="idea-actions">
-            <span class="chip">インパクト: <strong>${idea.impact}</strong></span>
-            <span class="chip">コスト: <strong>${idea.cost}</strong></span>
-            <span class="chip">スコア: <span class="score">${idea.score}</span></span>
-            <span class="zone">${zone}</span>
-          </div>
-        `;
-
-        const deleteButton = document.createElement("button");
-        deleteButton.type = "button";
-        deleteButton.textContent = "削除";
-        deleteButton.className = "delete-btn";
-        // 削除前に確認ダイアログを出し、OKなら対象のアイデアだけを削除する
-        deleteButton.addEventListener("click", () => {
-          if (!confirm("このアイデアを削除しますか？")) return;
-          deleteIdeaById(idea.id);
-        });
-
-        ideaEl.querySelector(".idea-actions").appendChild(deleteButton);
-        ideasContainer.appendChild(ideaEl);
+      const headerRow = document.createElement("div");
+      headerRow.className = "grid";
+      const headerCell = document.createElement("div"); headerCell.className = "header"; headerCell.textContent = "時間"; headerRow.appendChild(headerCell);
+      const dayNames = ["月","火","水","木","金","土","日"];
+      days.forEach((d,i)=>{
+        const cell = document.createElement("div");
+        cell.className = "header";
+        cell.innerHTML = `${dayNames[i]}<br>${String(d.getMonth()+1)}/${String(d.getDate()).padStart(2,"0")}`;
+        headerRow.appendChild(cell);
       });
-    };
+      cal.appendChild(headerRow);
 
-    ideaForm.addEventListener("submit", (event) => {
-      event.preventDefault();
-      const formData = new FormData(ideaForm);
-      const title = formData.get("title").trim();
-      const memo = formData.get("memo").trim();
-      const impact = Number(formData.get("impact"));
-      const cost = Number(formData.get("cost"));
+      timeSlots.forEach(t => {
+        const row = document.createElement("div");
+        row.className = "grid";
+        const timeCell = document.createElement("div"); timeCell.className = "time"; timeCell.textContent = t; row.appendChild(timeCell);
+        days.forEach(d => {
+          const dateStr = d.toISOString().slice(0,10);
+          const cell = document.createElement("div");
+          cell.className = "slot";
+          const key = slotKey(dateStr, t);
+          if (selectedSlots.has(key)) cell.classList.add("selected");
+          cell.addEventListener("click", ()=>{
+            if (!currentStaff) { alert("先にスタッフを選択してください"); return; }
+            if (selectedSlots.has(key)) selectedSlots.delete(key); else selectedSlots.add(key);
+            renderCalendar();
+          });
+          row.appendChild(cell);
+        });
+        cal.appendChild(row);
+      });
+      document.getElementById("week-label").textContent = weekRangeLabel(selectedWeekStart);
+    }
 
-      if (!title || !impact || !cost) {
-        alert("タイトル・インパクト・コストを入力してください");
-        return;
-      }
+    function loadAvailabilityForCurrent() {
+      if (!currentStaff) { selectedSlots = new Set(); selectedDesiredPositions = new Set(); return; }
+      const avail = state.availabilities.find(a => a.staffId === currentStaff && a.weekStart === selectedWeekStart);
+      selectedSlots = new Set(avail?.slots || []);
+      selectedDesiredPositions = new Set(avail?.desiredPositions || []);
+    }
 
-      const score = impact * 2 - cost;
-      const newIdea = {
-        id: crypto.randomUUID(),
-        title,
-        memo,
-        impact,
-        cost,
-        score,
-        createdAt: Date.now(),
+    function saveAvailability() {
+      if (!currentStaff) { alert("スタッフを選択してください"); return; }
+      const payload = {
+        staffId: currentStaff,
+        staffName: state.staffs.find(s=>s.id===currentStaff)?.name || "",
+        weekStart: selectedWeekStart,
+        slots: Array.from(selectedSlots),
+        desiredPositions: Array.from(selectedDesiredPositions)
       };
+      const idx = state.availabilities.findIndex(a => a.staffId === currentStaff && a.weekStart === selectedWeekStart);
+      if (idx >= 0) state.availabilities[idx] = payload; else state.availabilities.push(payload);
+      persist();
+      alert("保存しました（この端末のみ）");
+    }
 
-      const ideas = loadIdeas();
-      ideas.push(newIdea);
-      saveIdeas(ideas);
-      ideaForm.reset();
-      renderIdeas();
+    function exportAvailability() {
+      if (!currentStaff) { alert("スタッフを選択してください"); return; }
+      saveAvailability();
+      const staff = state.staffs.find(s=>s.id===currentStaff);
+      const name = staff ? staff.name : "staff";
+      const fileName = `availability_${name}_${selectedWeekStart}.json`;
+      const dataStr = JSON.stringify(state.availabilities.find(a=>a.staffId===currentStaff && a.weekStart===selectedWeekStart), null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url; a.download = fileName; a.click(); URL.revokeObjectURL(url);
+    }
+
+    function addStaff() {
+      const name = document.getElementById("add-name").value.trim();
+      if (!name) { alert("名前は必須です"); return; }
+      const positions = document.getElementById("add-positions").value.split(",").map(s=>s.trim()).filter(Boolean);
+      const max = document.getElementById("add-max").value;
+      const staff = { id: crypto.randomUUID(), name, positions: positions.length?positions:DEFAULT_POSITIONS, maxHours: max?Number(max):null };
+      state.staffs.push(staff);
+      document.getElementById("add-name").value = ""; document.getElementById("add-positions").value = ""; document.getElementById("add-max").value = "";
+      persist();
+      renderStaffList();
+      renderStaffSelect();
+    }
+
+    function renderStaffList() {
+      const container = document.getElementById("staff-list");
+      container.innerHTML = state.staffs.length?"": "スタッフ未登録";
+      state.staffs.forEach(s => {
+        const row = document.createElement("div");
+        row.className = "row";
+        row.innerHTML = `<strong>${s.name}</strong><span class="badge">${s.positions.join(" / ")}</span>` + (s.maxHours?`<span>${s.maxHours}h/週</span>`:"");
+        const del = document.createElement("button"); del.textContent = "削除"; del.className = "secondary";
+        del.addEventListener("click", ()=>{
+          if (!confirm(`削除しますか？ ${s.name}`)) return;
+          state.staffs = state.staffs.filter(st=>st.id!==s.id);
+          state.availabilities = state.availabilities.filter(a=>a.staffId!==s.id);
+          state.assignments = state.assignments.filter(as=>as.staffId!==s.id);
+          if (currentStaff===s.id) currentStaff=null;
+          persist(); renderStaffList(); renderStaffSelect(); renderCalendar();
+        });
+        row.appendChild(del);
+        container.appendChild(row);
+      });
+    }
+
+    function addRequirement() {
+      const date = document.getElementById("req-date").value;
+      const start = document.getElementById("req-start").value;
+      const end = document.getElementById("req-end").value;
+      const position = document.getElementById("req-position").value.trim();
+      const needed = Number(document.getElementById("req-needed").value);
+      if (!date || !start || !end || !position || !needed) { alert("すべて入力してください"); return; }
+      const req = { id: crypto.randomUUID(), date, start, end, position, needed };
+      state.requirements.push(req);
+      persist();
+      document.getElementById("req-date").value=""; document.getElementById("req-start").value=""; document.getElementById("req-end").value=""; document.getElementById("req-position").value=""; document.getElementById("req-needed").value="";
+      renderRequirementList();
+    }
+
+    function renderRequirementList() {
+      const list = document.getElementById("req-list");
+      list.innerHTML = "";
+      if (!state.requirements.length) { list.textContent = "まだありません"; return; }
+      state.requirements
+        .slice()
+        .sort((a,b)=> a.date===b.date ? a.start.localeCompare(b.start) : a.date.localeCompare(b.date))
+        .forEach(req => {
+          const div = document.createElement("div");
+          div.className = "row";
+          div.innerHTML = `<strong>${req.date} ${req.start}-${req.end}</strong><span class="badge">${req.position}</span><span>${req.needed}名</span>`;
+          const del = document.createElement("button"); del.textContent="削除"; del.className="secondary";
+          del.addEventListener("click", ()=>{
+            state.requirements = state.requirements.filter(r=>r.id!==req.id);
+            persist(); renderRequirementList();
+          });
+          div.appendChild(del);
+          list.appendChild(div);
+        });
+    }
+
+    function importAvailabilityFiles(files) {
+      if (!files.length) { alert("ファイルを選択してください"); return; }
+      let count = 0;
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const data = JSON.parse(reader.result);
+            if (!data.staffId || !data.weekStart || !Array.isArray(data.slots)) throw new Error("形式不正");
+            const idx = state.availabilities.findIndex(a=>a.staffId===data.staffId && a.weekStart===data.weekStart);
+            if (idx>=0) state.availabilities[idx]=data; else state.availabilities.push(data);
+            if (!state.staffs.find(s=>s.id===data.staffId)) {
+              state.staffs.push({ id: data.staffId, name: data.staffName||`スタッフ${data.staffId.slice(0,4)}`, positions: data.desiredPositions?.length?data.desiredPositions:DEFAULT_POSITIONS, maxHours:null });
+            }
+            count++;
+            persist();
+            renderStaffList(); renderStaffSelect();
+            document.getElementById("import-summary").textContent = `${state.availabilities.length}件の希望を保持`;
+          } catch(err) { alert(`${file.name}: ${err.message}`); }
+        };
+        reader.readAsText(file);
+      });
+    }
+
+    function requirementSlots(req) {
+      const slots = [];
+      const start = req.start; const end = req.end;
+      let current = start;
+      const step = (time) => {
+        const [h,m] = time.split(":").map(Number);
+        const date = new Date(0,0,0,h,m+30);
+        return `${String(date.getHours()).padStart(2,"0")}:${String(date.getMinutes()).padStart(2,"0")}`;
+      };
+      while (current < end) {
+        slots.push(current);
+        current = step(current);
+      }
+      return slots;
+    }
+
+    function totalAssignedMinutes(assignMap, staffId) {
+      return assignMap.get(staffId) || 0;
+    }
+
+    function runAssignment() {
+      const assignments = [];
+      const loadAvail = (staffId, date) => {
+        const week = weekStartStr(date);
+        return state.availabilities.find(a=>a.staffId===staffId && a.weekStart===week);
+      };
+      const assignMinutes = new Map();
+      const reqs = state.requirements.slice().sort((a,b)=> a.date===b.date ? a.start.localeCompare(b.start) : a.date.localeCompare(b.date));
+      reqs.forEach(req => {
+        const requiredSlots = requirementSlots(req).map(t=>slotKey(req.date, t));
+        const candidates = state.staffs.filter(st => st.positions.includes(req.position)).filter(st => {
+          const av = loadAvail(st.id, new Date(req.date));
+          if (!av) return false;
+          const set = new Set(av.slots);
+          return requiredSlots.every(s=>set.has(s));
+        });
+        candidates.sort((a,b)=> totalAssignedMinutes(assignMinutes,a.id) - totalAssignedMinutes(assignMinutes,b.id) || (Math.random()>0.5?1:-1));
+        const assigned = [];
+        for (const cand of candidates) {
+          if (assigned.length >= req.needed) break;
+          assigned.push(cand.id);
+          const duration = requirementSlots(req).length * 30;
+          assignMinutes.set(cand.id, totalAssignedMinutes(assignMinutes,cand.id)+duration);
+        }
+        const unfilled = Math.max(0, req.needed - assigned.length);
+        assignments.push({ requirementId: req.id, assigned, unfilled });
+      });
+      state.assignments = assignments;
+      persist();
+      renderAssignments();
+      alert("割当が完了しました");
+    }
+
+    function renderAssignments() {
+      const table = document.getElementById("assign-table");
+      table.innerHTML = "";
+      const header = document.createElement("tr");
+      ["日付", "時間", "ポジション", "割当", "未充足"].forEach(t=>{ const th=document.createElement("th"); th.textContent=t; header.appendChild(th);});
+      table.appendChild(header);
+      const getAssignment = (reqId) => state.assignments.find(a=>a.requirementId===reqId);
+      const rows = state.requirements.slice().sort((a,b)=> a.date===b.date ? a.start.localeCompare(b.start) : a.date.localeCompare(b.date));
+      if (!rows.length) { const tr=document.createElement("tr"); const td=document.createElement("td"); td.colSpan=5; td.textContent="必要枠を追加してください"; tr.appendChild(td); table.appendChild(tr); return; }
+      rows.forEach(req => {
+        const asn = getAssignment(req.id);
+        const tr = document.createElement("tr");
+        const names = (asn?.assigned||[]).map(id => state.staffs.find(s=>s.id===id)?.name || "?");
+        const filledCell = document.createElement("td");
+        filledCell.innerHTML = names.length? names.map(n=>`<span class="badge">${n}</span>`).join(" ") : "";
+        const missCell = document.createElement("td");
+        const miss = asn? asn.unfilled : req.needed;
+        missCell.textContent = miss > 0 ? `${miss} 未充足` : "0";
+        if (miss>0) missCell.className = "missing"; else filledCell.className = "success";
+        [req.date, `${req.start} - ${req.end}`, req.position, filledCell, missCell].forEach((v,i)=>{
+          const td = v instanceof HTMLElement ? v : (()=>{ const t=document.createElement("td"); t.textContent=v; return t;})();
+          tr.appendChild(td);
+        });
+        table.appendChild(tr);
+      });
+    }
+
+    function exportBackup() {
+      const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href=url; a.download="shift_backup.json"; a.click(); URL.revokeObjectURL(url);
+    }
+
+    function importBackup(file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (!confirm("現在のデータを上書きしますか？")) return;
+        try {
+          const data = JSON.parse(reader.result);
+          state.staffs = data.staffs||[];
+          state.availabilities = data.availabilities||[];
+          state.requirements = data.requirements||[];
+          state.assignments = data.assignments||[];
+          selectedWeekStart = data.currentWeekStart || weekStartStr(new Date());
+          persist();
+          renderAll();
+        } catch(e) { alert("読み込み失敗: "+e.message); }
+      };
+      reader.readAsText(file);
+    }
+
+    function renderImportSummary() {
+      const unique = new Set(state.availabilities.map(a=>a.staffId+"_"+a.weekStart));
+      document.getElementById("import-summary").textContent = `${unique.size}件の希望を保持`;
+    }
+
+    function renderAll() {
+      renderStaffSelect();
+      loadAvailabilityForCurrent();
+      renderPositionsPicker();
+      renderCalendar();
+      renderStaffList();
+      renderRequirementList();
+      renderAssignments();
+      renderImportSummary();
+    }
+
+    // event wiring
+    document.getElementById("staff-select").addEventListener("change", (e)=>{ currentStaff = e.target.value; loadAvailabilityForCurrent(); renderPositionsPicker(); renderCalendar(); });
+    document.getElementById("save-local").addEventListener("click", saveAvailability);
+    document.getElementById("export-availability").addEventListener("click", exportAvailability);
+    document.getElementById("add-staff").addEventListener("click", addStaff);
+    document.getElementById("add-req").addEventListener("click", addRequirement);
+    document.getElementById("run-assign").addEventListener("click", runAssignment);
+    document.getElementById("export-backup").addEventListener("click", exportBackup);
+    document.getElementById("import-backup").addEventListener("click", ()=>{
+      const f = document.getElementById("import-backup-file").files?.[0];
+      if (!f) { alert("ファイルを選択してください"); return; }
+      importBackup(f);
     });
-
-    clearButton.addEventListener("click", () => {
-      if (!confirm("保存されているアイデアをすべて削除しますか？")) return;
-      localStorage.removeItem(STORAGE_KEY);
-      renderIdeas();
+    document.getElementById("import-btn").addEventListener("click", ()=>{
+      const files = document.getElementById("import-files").files;
+      importAvailabilityFiles(files);
     });
+    document.getElementById("week-prev").addEventListener("click", ()=>{ const d=new Date(selectedWeekStart); d.setDate(d.getDate()-7); selectedWeekStart=weekStartStr(d); loadAvailabilityForCurrent(); renderCalendar(); });
+    document.getElementById("week-next").addEventListener("click", ()=>{ const d=new Date(selectedWeekStart); d.setDate(d.getDate()+7); selectedWeekStart=weekStartStr(d); loadAvailabilityForCurrent(); renderCalendar(); });
+    document.getElementById("tab-staff").addEventListener("click", ()=>{ document.getElementById("tab-staff").classList.add("active"); document.getElementById("tab-owner").classList.remove("active"); document.getElementById("staff-mode").style.display="block"; document.getElementById("owner-mode").style.display="none"; });
+    document.getElementById("tab-owner").addEventListener("click", ()=>{ document.getElementById("tab-owner").classList.add("active"); document.getElementById("tab-staff").classList.remove("active"); document.getElementById("staff-mode").style.display="none"; document.getElementById("owner-mode").style.display="block"; });
 
-    initializeMapTitle();
-    renderIdeas();
+    renderAll();
   </script>
 </body>
 </html>
