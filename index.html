@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>インパクト×コスト アイデア選別</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --accent: #2563eb;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Inter", "Noto Sans JP", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+    }
+
+    main {
+      width: min(960px, 100%);
+      padding: 24px 18px 32px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(1.6rem, 3vw, 2rem);
+      letter-spacing: -0.01em;
+    }
+
+    p.lead {
+      margin: 0 0 20px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.04);
+    }
+
+    form {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      margin-bottom: 22px;
+      align-items: end;
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    input[type="text"], textarea, select {
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      font-size: 1rem;
+      background: #fff;
+    }
+
+    textarea { resize: vertical; min-height: 80px; }
+
+    button {
+      padding: 12px 14px;
+      border: none;
+      border-radius: 10px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 120ms ease, box-shadow 120ms ease;
+      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.25);
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+
+    .ideas {
+      display: grid;
+      gap: 12px;
+    }
+
+    .idea {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 18px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      background: #fff;
+    }
+
+    .idea-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .idea h3 {
+      margin: 0;
+      font-size: 1.05rem;
+    }
+
+    .idea .zone {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      background: #eff6ff;
+      color: #1d4ed8;
+      padding: 6px 10px;
+      border-radius: 999px;
+      width: fit-content;
+    }
+
+    .idea small { color: var(--muted); }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #f3f4f6;
+      font-size: 0.9rem;
+    }
+
+    .zone-pill {
+      /* ゾーンフィルター用の小さなボタン（見た目は従来のラベル風） */
+      border: 1px solid var(--border);
+      box-shadow: none;
+      background: #f3f4f6;
+      color: var(--text);
+      padding: 6px 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background-color 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+    }
+
+    .zone-pill--active {
+      /* 選択中のゾーンは少し濃い背景と枠で強調 */
+      background: #dbeafe;
+      border-color: #2563eb;
+      color: #1d4ed8;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+    }
+
+    .score { font-weight: 700; color: #0f172a; }
+
+    .chart-shell {
+      margin-top: 10px;
+      position: relative;
+      padding-bottom: 34px;
+    }
+
+    .chart-area {
+      position: relative;
+      height: min(360px, 60vw);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background-image:
+        linear-gradient(to right, var(--border) 1px, transparent 1px),
+        linear-gradient(to top, var(--border) 1px, transparent 1px);
+      background-size: calc(100% / 5) calc(100% / 5);
+      overflow: hidden;
+    }
+
+    .chart-points {
+      position: absolute;
+      inset: 0;
+    }
+
+    .chart-point {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      padding: 6px 9px;
+      border-radius: 999px;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+      background: #fff;
+      border: 1px solid var(--border);
+    }
+
+    .delete-btn {
+      background: #ef4444;
+      box-shadow: none;
+      padding: 8px 10px;
+      font-size: 0.9rem;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+
+    .axis-x,
+    .axis-y {
+      position: absolute;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .axis-x {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      bottom: -24px;
+      left: 0;
+      right: 0;
+    }
+
+    .axis-y {
+      display: grid;
+      grid-template-rows: repeat(5, 1fr);
+      top: 0;
+      bottom: 0;
+      left: -26px;
+    }
+
+    .axis-label {
+      position: absolute;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .axis-label-x {
+      bottom: -40px;
+      right: 4px;
+    }
+
+    .axis-label-y {
+      top: 4px;
+      left: -2px;
+      writing-mode: vertical-rl;
+    }
+
+    .chart-empty {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+      background: linear-gradient(135deg, rgba(255,255,255,0.88), rgba(255,255,255,0.6));
+      backdrop-filter: blur(2px);
+      visibility: hidden;
+    }
+
+    @media (max-width: 640px) {
+      form {
+        grid-template-columns: 1fr;
+      }
+
+      .idea {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>インパクト×コスト アイデア選別</h1>
+    <p class="lead">インパクトとコストを入力すると、優先度スコアとおすすめのゾーンを自動で判定します。ローカルストレージに保存されるのでブラウザだけで完結します。</p>
+
+    <section class="card">
+      <form id="idea-form" autocomplete="off">
+        <label>
+          タイトル
+          <input required id="title" name="title" type="text" placeholder="例：新しいオンボーディングフロー" />
+        </label>
+        <label>
+          メモ（任意）
+          <textarea id="memo" name="memo" placeholder="補足や背景をメモできます"></textarea>
+        </label>
+        <label>
+          インパクト（1〜5）
+          <select required id="impact" name="impact">
+            <option value="">選択してください</option>
+            <option value="5">5（とても高い）</option>
+            <option value="4">4（高い）</option>
+            <option value="3">3（中）</option>
+            <option value="2">2（低い）</option>
+            <option value="1">1（とても低い）</option>
+          </select>
+        </label>
+        <label>
+          コスト（1〜5）
+          <select required id="cost" name="cost">
+            <option value="">選択してください</option>
+            <option value="1">1（とても低い）</option>
+            <option value="2">2（低い）</option>
+            <option value="3">3（中）</option>
+            <option value="4">4（高い）</option>
+            <option value="5">5（とても高い）</option>
+          </select>
+        </label>
+        <div>
+          <button type="submit">保存</button>
+        </div>
+      </form>
+    </section>
+
+    <section style="margin-top: 18px;" class="card">
+      <header style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div>
+          <h2 style="margin:0; font-size:1.1rem;">インパクト×コスト マップ</h2>
+          <small style="color: var(--muted);">縦軸：インパクト（上が大きい） / 横軸：コスト（右が大きい）</small>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-size:0.9rem;">
+          <button type="button" class="zone-pill" style="background:#eff6ff; color:#1d4ed8;" data-zone="sweet">美味しい実験</button>
+          <button type="button" class="zone-pill" style="background:#ecfeff; color:#0e7490;" data-zone="nice">余裕があれば</button>
+          <button type="button" class="zone-pill" style="background:#fff7ed; color:#c2410c;" data-zone="big">大型案件</button>
+          <button type="button" class="zone-pill" style="background:#fef2f2; color:#b91c1c;" data-zone="avoid">やらない候補</button>
+        </div>
+      </header>
+      <div class="chart-shell">
+        <div class="chart-area" aria-live="polite">
+          <div class="chart-points" id="chart-points"></div>
+          <p class="chart-empty" id="chart-empty" aria-hidden="true">まだデータがありません</p>
+          <div class="axis-x" aria-hidden="true">
+            <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+          </div>
+          <div class="axis-y" aria-hidden="true">
+            <span>5</span><span>4</span><span>3</span><span>2</span><span>1</span>
+          </div>
+          <span class="axis-label axis-label-x">コスト</span>
+          <span class="axis-label axis-label-y">インパクト</span>
+        </div>
+      </div>
+    </section>
+
+    <section style="margin-top: 18px;" class="card">
+      <header style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div>
+          <h2 style="margin:0; font-size:1.1rem;">登録済みアイデア</h2>
+          <small style="color: var(--muted);">優先度スコアの高い順に表示</small>
+        </div>
+        <button id="clear" type="button" style="background:#ef4444; box-shadow:none;">全件リセット</button>
+      </header>
+      <div id="ideas" class="ideas" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "ideas";
+
+    const ideaForm = document.getElementById("idea-form");
+    const ideasContainer = document.getElementById("ideas");
+    const clearButton = document.getElementById("clear");
+    const chartArea = document.querySelector(".chart-area");
+    const chartPoints = document.getElementById("chart-points");
+    const chartEmpty = document.getElementById("chart-empty");
+    const zoneFilterButtons = document.querySelectorAll("[data-zone]");
+
+    // ゾーンフィルターのON/OFF状態を管理する（空集合のときは全件表示）
+    const activeZones = new Set();
+
+    const loadIdeas = () => {
+      try {
+        const data = localStorage.getItem(STORAGE_KEY);
+        const parsed = data ? JSON.parse(data) : [];
+
+        if (!Array.isArray(parsed)) return [];
+
+        // 古いデータに id が無い場合に付与して保存し直す
+        const normalized = parsed.map((idea) => (idea.id ? idea : { ...idea, id: crypto.randomUUID() }));
+        const needsSave = normalized.some((idea, idx) => idea.id !== parsed[idx]?.id);
+        if (needsSave) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+        }
+
+        return normalized;
+      } catch (error) {
+        console.error("Failed to load ideas", error);
+        return [];
+      }
+    };
+
+    const saveIdeas = (ideas) => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(ideas));
+    };
+
+    // clamp（＝最小値と最大値の間に値を収める。端ギリギリのラベルが切れないようにする）
+    const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+    const classifyZone = (impact, cost) => {
+      const highImpact = impact >= 4;
+      const lowImpact = impact <= 3;
+      const lowCost = cost <= 2;
+      const highCost = cost >= 3;
+
+      if (highImpact && lowCost) return "美味しい実験";
+      if (lowImpact && highCost) return "やらない候補";
+      if (lowImpact && lowCost) return "余裕があれば";
+      return "大型案件";
+    };
+
+    const zoneColor = (zone) => {
+      switch (zone) {
+        case "美味しい実験":
+          return "#1d4ed8";
+        case "余裕があれば":
+          return "#0e7490";
+        case "大型案件":
+          return "#c2410c";
+        case "やらない候補":
+          return "#b91c1c";
+        default:
+          return "#111827";
+      }
+    };
+
+    // ゾーン名（日本語）からフィルターキーを返す
+    const zoneLabelToKey = {
+      "美味しい実験": "sweet",
+      "余裕があれば": "nice",
+      "大型案件": "big",
+      "やらない候補": "avoid",
+    };
+
+    const getZoneKeyForIdea = (idea) => {
+      // impact と cost から判定したゾーンをフィルター用キーに変換する
+      const zoneLabel = classifyZone(idea.impact, idea.cost);
+      return zoneLabelToKey[zoneLabel] || "";
+    };
+
+    const deleteIdeaById = (id) => {
+      // 個別削除ボタンのクリックでこのアイデアだけを削除する
+      const ideas = loadIdeas();
+      const next = ideas.filter((idea) => idea.id !== id);
+      saveIdeas(next);
+      renderIdeas();
+    };
+
+    const renderChart = (ideas) => {
+      // フィルター状態に応じてマップに描画するアイデアを絞り込む（activeZones が空なら全件）
+      const filteredIdeas = ideas.filter((idea) => {
+        const zoneKey = getZoneKeyForIdea(idea);
+        if (!activeZones.size) return true;
+        return activeZones.has(zoneKey);
+      });
+
+      chartPoints.innerHTML = "";
+
+      if (!filteredIdeas.length) {
+        chartEmpty.style.visibility = "visible";
+        return;
+      }
+
+      chartEmpty.style.visibility = "hidden";
+
+        filteredIdeas.forEach((idea) => {
+          const xRatio = (idea.cost - 1) / 4; // 0 (低コスト) 〜 1 (高コスト)
+          const yRatio = 1 - (idea.impact - 1) / 4; // 0 (高インパクト) を上に
+          const zone = classifyZone(idea.impact, idea.cost);
+          const color = zoneColor(zone);
+
+          const point = document.createElement("div");
+          point.className = "chart-point";
+          point.style.borderColor = color;
+
+          point.innerHTML = `<span class="dot" style="background:${color}"></span><span>${idea.title}</span>`;
+
+          chartPoints.appendChild(point);
+
+          const yPercent = clamp(yRatio * 100, 8, 92); // 端寄りになりすぎないようにする
+
+          const areaWidth = chartArea?.getBoundingClientRect().width || 1;
+          const labelWidth = point.getBoundingClientRect().width;
+          // ラベルの幅も含めてチャート枠の内側に収めるための計算です
+          const minX = labelWidth / 2 + 8; // 左に8pxの余白を確保
+          const maxX = areaWidth - labelWidth / 2 - 8; // 右に8pxの余白を確保
+          const xPx = clamp(xRatio * areaWidth, minX, maxX);
+          const leftPercent = (xPx / areaWidth) * 100;
+
+          point.style.left = `${leftPercent}%`;
+          point.style.top = `${yPercent}%`;
+        });
+      };
+
+    zoneFilterButtons.forEach((button) => {
+      const zoneKey = button.dataset.zone;
+      // 初期状態では全てOFF（activeZonesは空）だが、見た目を同期しておく
+      button.classList.toggle("zone-pill--active", activeZones.has(zoneKey));
+
+      button.addEventListener("click", () => {
+        // ゾーンフィルターのON/OFFを切り替え、マップのみを再描画する
+        if (activeZones.has(zoneKey)) {
+          activeZones.delete(zoneKey);
+        } else {
+          activeZones.add(zoneKey);
+        }
+
+        button.classList.toggle("zone-pill--active", activeZones.has(zoneKey));
+
+        const ideas = loadIdeas();
+        const sorted = [...ideas].sort((a, b) => b.score - a.score);
+        renderChart(sorted);
+      });
+    });
+
+    const renderIdeas = () => {
+      const ideas = loadIdeas();
+      ideasContainer.innerHTML = "";
+
+      const sorted = [...ideas].sort((a, b) => b.score - a.score);
+
+      renderChart(sorted);
+
+      if (sorted.length === 0) {
+        ideasContainer.innerHTML = '<p style="margin:0;color:var(--muted);">まだアイデアがありません。フォームから追加してください。</p>';
+        return;
+      }
+
+      sorted.forEach((idea) => {
+        const zone = classifyZone(idea.impact, idea.cost);
+        const ideaEl = document.createElement("article");
+        ideaEl.className = "idea";
+        ideaEl.innerHTML = `
+          <div>
+            <h3>${idea.title}</h3>
+            <small>${idea.memo ? idea.memo : "メモなし"}</small>
+          </div>
+          <div class="idea-actions">
+            <span class="chip">インパクト: <strong>${idea.impact}</strong></span>
+            <span class="chip">コスト: <strong>${idea.cost}</strong></span>
+            <span class="chip">スコア: <span class="score">${idea.score}</span></span>
+            <span class="zone">${zone}</span>
+          </div>
+        `;
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.textContent = "削除";
+        deleteButton.className = "delete-btn";
+        // 削除前に確認ダイアログを出し、OKなら対象のアイデアだけを削除する
+        deleteButton.addEventListener("click", () => {
+          if (!confirm("このアイデアを削除しますか？")) return;
+          deleteIdeaById(idea.id);
+        });
+
+        ideaEl.querySelector(".idea-actions").appendChild(deleteButton);
+        ideasContainer.appendChild(ideaEl);
+      });
+    };
+
+    ideaForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const formData = new FormData(ideaForm);
+      const title = formData.get("title").trim();
+      const memo = formData.get("memo").trim();
+      const impact = Number(formData.get("impact"));
+      const cost = Number(formData.get("cost"));
+
+      if (!title || !impact || !cost) {
+        alert("タイトル・インパクト・コストを入力してください");
+        return;
+      }
+
+      const score = impact * 2 - cost;
+      const newIdea = {
+        id: crypto.randomUUID(),
+        title,
+        memo,
+        impact,
+        cost,
+        score,
+        createdAt: Date.now(),
+      };
+
+      const ideas = loadIdeas();
+      ideas.push(newIdea);
+      saveIdeas(ideas);
+      ideaForm.reset();
+      renderIdeas();
+    });
+
+    clearButton.addEventListener("click", () => {
+      if (!confirm("保存されているアイデアをすべて削除しますか？")) return;
+      localStorage.removeItem(STORAGE_KEY);
+      renderIdeas();
+    });
+
+    renderIdeas();
+  </script>
+</body>
+</html>
