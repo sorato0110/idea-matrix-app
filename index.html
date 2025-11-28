@@ -3,595 +3,393 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>シフト希望回収＆自動割当</title>
-  <style>
-    :root {
-      --bg: #f7f8fb;
-      --card: #ffffff;
-      --border: #e5e7eb;
-      --text: #0f172a;
-      --muted: #64748b;
-      --accent: #2563eb;
-      --accent-weak: #dbeafe;
-      --danger: #f97316;
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: "Inter", "Noto Sans JP", system-ui, -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      display: flex;
-      justify-content: center;
-      min-height: 100vh;
-    }
-
-    main { width: min(1200px, 100%); padding: 20px; }
-
-    h1 { margin: 0 0 8px; }
-    p.lead { margin: 0 0 14px; color: var(--muted); }
-
-    .tabs {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      background: #e2e8f0;
-      border-radius: 12px;
-      padding: 4px;
-      margin-bottom: 12px;
-    }
-
-    .tab {
-      padding: 10px 12px;
-      text-align: center;
-      font-weight: 700;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: background 0.15s ease, color 0.15s ease;
-      user-select: none;
-    }
-    .tab.active { background: var(--card); box-shadow: 0 6px 20px rgba(15, 23, 42, 0.1); }
-
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 16px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-      margin-bottom: 14px;
-    }
-
-    label { display: flex; flex-direction: column; gap: 6px; font-weight: 700; }
-    input, select, textarea { border-radius: 10px; border: 1px solid var(--border); padding: 10px 12px; font-size: 1rem; }
-    textarea { resize: vertical; min-height: 70px; }
-    input[type="number"] { width: 100%; }
-
-    button {
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      padding: 10px 12px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: transform 0.1s ease, box-shadow 0.1s ease;
-      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
-    }
-    button.secondary { background: #e2e8f0; color: #0f172a; box-shadow: none; }
-    button:hover { transform: translateY(-1px); }
-
-    .grid {
-      display: grid;
-      grid-template-columns: 130px repeat(7, 1fr);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      overflow: hidden;
-      background: #fff;
-    }
-    .grid .header { background: #f8fafc; font-weight: 700; text-align: center; padding: 8px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); }
-    .grid .time { padding: 6px 8px; background: #f8fafc; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); font-size: 0.9rem; }
-    .slot { border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); padding: 6px; font-size: 0.85rem; cursor: pointer; min-height: 32px; }
-    .slot.selected { background: var(--accent-weak); color: #1d4ed8; font-weight: 700; }
-
-    .positions { display: flex; gap: 10px; flex-wrap: wrap; }
-    .pill { border: 1px solid var(--border); padding: 8px 10px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
-    .pill input { width: 16px; height: 16px; }
-
-    .section-title { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-
-    .list { display: grid; gap: 8px; }
-    .row { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); align-items: center; }
-
-    .badge { background: #f1f5f9; padding: 6px 10px; border-radius: 999px; font-weight: 700; }
-    .danger { color: #c2410c; font-weight: 700; }
-
-    .assign-table { width: 100%; border-collapse: collapse; }
-    .assign-table th, .assign-table td { border: 1px solid var(--border); padding: 8px; text-align: left; }
-    .assign-table th { background: #f8fafc; }
-    .missing { background: #fff1e6; color: #c2410c; font-weight: 700; }
-    .success { background: #ecfeff; color: #0e7490; font-weight: 700; }
-
-    .flex { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-  </style>
+  <title>バンディット×ベイズ戦略</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body>
-  <main>
-    <h1>希望回収 → 自動割当シフト</h1>
-    <p class="lead">スタッフの希望を集め、必要人数に合わせて自動配置するシンプルツール（ブラウザのみ、データはlocalStorage保存）。</p>
+<body class="bg-gray-50 text-gray-900">
+  <div id="root" class="min-h-screen"></div>
 
-    <div class="tabs">
-      <div class="tab active" id="tab-staff">1) スタッフ入力モード</div>
-      <div class="tab" id="tab-owner">2) 作成者モード</div>
-    </div>
+  <script type="text/babel" data-type="module">
+    const { useState, useEffect } = React;
 
-    <section class="card" id="staff-mode">
-      <div class="section-title">
-        <h2>スタッフ入力</h2>
-        <div class="flex">
-          <button class="secondary" id="week-prev">◀ 前の週</button>
-          <button class="secondary" id="week-next">次の週 ▶</button>
-          <span id="week-label" class="badge"></span>
+    const load = (key, fallback) => {
+      try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
+    };
+    const save = (key, value) => localStorage.setItem(key, JSON.stringify(value));
+
+    const zones = [
+      { key: 'quick', label: 'おいしい実験', color: 'bg-emerald-100 text-emerald-700' },
+      { key: 'big', label: '大型案件', color: 'bg-blue-100 text-blue-700' },
+      { key: 'maybe', label: '再考が必要', color: 'bg-amber-100 text-amber-700' },
+      { key: 'avoid', label: '避けたい', color: 'bg-rose-100 text-rose-700' },
+    ];
+
+    const zoneFor = (impact, cost) => {
+      if (impact >= 4 && cost <= 3) return 'quick';
+      if (impact >= 4 && cost >= 4) return 'big';
+      if (impact <= 3 && cost <= 3) return 'maybe';
+      return 'avoid';
+    };
+
+    const priorityScore = (impact, cost) => impact * (6 - cost);
+
+    const SectionCard = ({ title, children, className = '' }) => (
+      <section className={`bg-white rounded-2xl shadow-md border border-gray-200 p-5 ${className}`}>
+        {title && <h2 className="text-xl font-bold mb-3">{title}</h2>}
+        {children}
+      </section>
+    );
+
+    const IdeaForm = ({ onAdd }) => {
+      const [title, setTitle] = useState('');
+      const [note, setNote] = useState('');
+      const [impact, setImpact] = useState(3);
+      const [cost, setCost] = useState(3);
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!title.trim()) return;
+        onAdd({
+          id: Date.now(),
+          title: title.trim(),
+          note,
+          impact: Number(impact),
+          cost: Number(cost),
+          created: new Date().toISOString(),
+        });
+        setTitle('');
+        setNote('');
+        setImpact(3);
+        setCost(3);
+      };
+
+      return (
+        <SectionCard title="アイデア入力" className="mb-5">
+          <form className="grid md:grid-cols-2 gap-4" onSubmit={handleSubmit}>
+            <label className="font-semibold text-gray-800">
+              タイトル
+              <input className="mt-1 w-full border rounded-lg p-3 bg-white text-gray-900" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="例: 新LPで検証" required />
+            </label>
+            <label className="font-semibold text-gray-800">
+              メモ
+              <textarea className="mt-1 w-full border rounded-lg p-3 bg-white text-gray-900" value={note} onChange={(e) => setNote(e.target.value)} placeholder="仮説や背景をメモ"></textarea>
+            </label>
+            <label className="font-semibold text-gray-800">
+              インパクト (1-5)
+              <input type="number" min="1" max="5" className="mt-1 w-full border rounded-lg p-3 bg-white text-gray-900" value={impact} onChange={(e) => setImpact(e.target.value)} />
+            </label>
+            <label className="font-semibold text-gray-800">
+              コスト (1-5)
+              <input type="number" min="1" max="5" className="mt-1 w-full border rounded-lg p-3 bg-white text-gray-900" value={cost} onChange={(e) => setCost(e.target.value)} />
+            </label>
+            <div className="md:col-span-2 flex justify-end">
+              <button type="submit" className="px-4 py-3 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700">追加する</button>
+            </div>
+          </form>
+        </SectionCard>
+      );
+    };
+
+    const ProjectTitle = ({ projectName, setProjectName }) => (
+      <SectionCard className="mb-5">
+        <div className="flex flex-col md:flex-row md:items-center gap-3">
+          <div className="font-bold text-lg">プロジェクト名</div>
+          <input className="flex-1 border rounded-lg p-3 bg-white text-gray-900" value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="例: 2024 Q4 施策" />
         </div>
-      </div>
+      </SectionCard>
+    );
 
-      <div class="row">
-        <label>
-          スタッフを選択（必須）
-          <select id="staff-select"></select>
-        </label>
-        <label>
-          希望ポジション（複数選択可）
-          <div id="staff-positions" class="positions"></div>
-        </label>
-      </div>
+    const Matrix = ({ ideas }) => (
+      <SectionCard title="インパクト×コスト マトリクス" className="mb-5">
+        <div className="grid grid-cols-6 gap-2">
+          {[5,4,3,2,1].map((impact) => (
+            <div key={impact} className="col-span-6 grid grid-cols-6 gap-2 items-center">
+              <div className="text-sm font-semibold">インパクト {impact}</div>
+              {[1,2,3,4,5].map((cost) => {
+                const atCell = ideas.filter(i => i.impact === impact && i.cost === cost);
+                return (
+                  <div key={cost} className="border border-dashed border-gray-200 rounded-lg p-2 min-h-[70px] bg-gray-50">
+                    <div className="text-xs text-gray-500 mb-1">コスト {cost}</div>
+                    <div className="space-y-1">
+                      {atCell.map(item => (
+                        <div key={item.id} className="text-xs font-semibold text-gray-800 bg-white rounded px-2 py-1 shadow-sm">
+                          {item.title}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </SectionCard>
+    );
 
-      <h3>出られる時間帯（30分単位）</h3>
-      <div id="calendar" class="grid"></div>
+    const IdeaList = ({ ideas, onDelete, filter, setFilter }) => {
+      const filtered = filter ? ideas.filter(i => zoneFor(i.impact, i.cost) === filter) : ideas;
+      const sorted = [...filtered].sort((a, b) => priorityScore(b.impact, b.cost) - priorityScore(a.impact, a.cost));
+      return (
+        <SectionCard title="スコア順リスト">
+          <div className="flex flex-wrap gap-2 mb-3">
+            <button className={`px-3 py-1 rounded-full border ${!filter ? 'bg-blue-600 text-white' : 'bg-white text-gray-800'}`} onClick={() => setFilter('')}>すべて</button>
+            {zones.map(z => (
+              <button key={z.key} className={`px-3 py-1 rounded-full border ${filter === z.key ? 'bg-blue-600 text-white' : 'bg-white text-gray-800'}`} onClick={() => setFilter(z.key)}>{z.label}</button>
+            ))}
+          </div>
+          <div className="space-y-3">
+            {sorted.map(item => (
+              <div key={item.id} className="bg-gray-50 rounded-xl border border-gray-200 p-4 flex flex-col md:flex-row md:items-center gap-3">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-bold text-lg">{item.title}</span>
+                    <span className={`text-xs font-bold px-2 py-1 rounded ${zones.find(z=>z.key===zoneFor(item.impact,item.cost))?.color || ''}`}>
+                      {zones.find(z=>z.key===zoneFor(item.impact,item.cost))?.label}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-700 whitespace-pre-line">{item.note}</p>
+                  <div className="text-xs text-gray-600 mt-1">インパクト {item.impact} / コスト {item.cost} / スコア {priorityScore(item.impact, item.cost)}</div>
+                </div>
+                <button
+                  className="self-start md:self-center px-4 py-2 rounded-lg bg-rose-100 text-rose-700 hover:bg-rose-200"
+                  onClick={() => onDelete(item.id)}
+                >
+                  🗑 削除
+                </button>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      );
+    };
 
-      <div class="flex" style="margin-top:12px;">
-        <button id="save-local">この端末に保存</button>
-        <button id="export-availability" class="secondary">希望をファイル書き出し（JSON）</button>
-      </div>
-      <p class="lead">※保存はこの端末のみ。ファイル書き出しで作成者に提出できます。</p>
-    </section>
+    const HypothesisBoard = ({ items, setItems }) => {
+      const [form, setForm] = useState({ idea: '', hypothesis: '', platform: '', period: '', workload: '小', kpi: '', status: '未着手', learning: '' });
 
-    <section class="card" id="owner-mode" style="display:none;">
-      <div class="section-title"><h2>作成者モード</h2></div>
-
-      <h3>スタッフ管理</h3>
-      <div class="row">
-        <label>名前<input type="text" id="add-name" placeholder="例：田中" /></label>
-        <label>可能ポジション（カンマ区切り）<input type="text" id="add-positions" placeholder="ホール,キッチン" /></label>
-        <label>週の上限時間（任意）<input type="number" id="add-max" min="0" placeholder="例：40" /></label>
-        <button id="add-staff">追加</button>
-      </div>
-      <div class="list" id="staff-list"></div>
-
-      <hr />
-      <h3>希望データ集約</h3>
-      <div class="flex">
-        <input type="file" id="import-files" multiple accept="application/json" />
-        <button class="secondary" id="import-btn">希望ファイルを読み込み</button>
-        <span id="import-summary" class="badge"></span>
-      </div>
-
-      <hr />
-      <h3>必要人数（ポジション×時間帯）</h3>
-      <div class="row">
-        <label>日付<input type="date" id="req-date" /></label>
-        <label>開始<input type="time" id="req-start" /></label>
-        <label>終了<input type="time" id="req-end" /></label>
-        <label>ポジション<input type="text" id="req-position" placeholder="ホール" /></label>
-        <label>必要人数<input type="number" min="1" id="req-needed" /></label>
-        <button id="add-req">追加</button>
-      </div>
-      <div class="list" id="req-list"></div>
-
-      <hr />
-      <div class="flex">
-        <button id="run-assign">自動割当を実行</button>
-        <button class="secondary" id="export-backup">全データを書き出し</button>
-        <input type="file" id="import-backup-file" accept="application/json" />
-        <button class="secondary" id="import-backup">バックアップ読み込み</button>
-      </div>
-      <p class="lead">ヒューリスティック：必要枠順→候補（可用＋ポジション一致）→割当時間が少ない人優先→同率はランダム。</p>
-
-      <h3>割当結果</h3>
-      <table class="assign-table" id="assign-table"></table>
-    </section>
-  </main>
-
-  <script>
-    const STORAGE_KEY = "shift_auto_v1";
-    const DEFAULT_POSITIONS = ["ホール", "キッチン", "洗い場", "ドリンク", "デリバリー"];
-    const timeSlots = (() => {
-      const slots = [];
-      for (let h = 6; h < 24; h++) {
-        slots.push(`${String(h).padStart(2, "0")}:00`, `${String(h).padStart(2, "0")}:30`);
-      }
-      return slots;
-    })();
-
-    const state = loadState();
-    let currentStaff = null;
-    let selectedWeekStart = state.currentWeekStart || weekStartStr(new Date());
-    let selectedSlots = new Set();
-    let selectedDesiredPositions = new Set();
-
-    function loadState() {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        try { return JSON.parse(stored); } catch (e) { console.warn("state parse error", e); }
-      }
-      return { staffs: [], availabilities: [], requirements: [], assignments: [], currentWeekStart: weekStartStr(new Date()) };
-    }
-    function persist() { state.currentWeekStart = selectedWeekStart; localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-
-    function weekStartStr(date) {
-      const d = new Date(date);
-      const day = d.getDay();
-      const diff = (day + 6) % 7; // Monday start
-      d.setHours(0,0,0,0);
-      d.setDate(d.getDate() - diff);
-      return d.toISOString().slice(0,10);
-    }
-
-    function weekRangeLabel(startStr) {
-      const start = new Date(startStr);
-      const end = new Date(startStr);
-      end.setDate(start.getDate() + 6);
-      const fmt = (d) => `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`;
-      return `${fmt(start)} 〜 ${fmt(end)}`;
-    }
-
-    function renderStaffSelect() {
-      const select = document.getElementById("staff-select");
-      select.innerHTML = "";
-      const placeholder = document.createElement("option");
-      placeholder.value = ""; placeholder.textContent = "スタッフを選択"; placeholder.disabled = true; placeholder.selected = true;
-      select.appendChild(placeholder);
-      state.staffs.forEach(s => {
-        const opt = document.createElement("option");
-        opt.value = s.id; opt.textContent = s.name;
-        select.appendChild(opt);
-      });
-      if (currentStaff && state.staffs.find(s=>s.id===currentStaff)) select.value = currentStaff;
-    }
-
-    function renderPositionsPicker() {
-      const container = document.getElementById("staff-positions");
-      container.innerHTML = "";
-      const staff = state.staffs.find(s => s.id === currentStaff);
-      const choices = staff ? staff.positions : DEFAULT_POSITIONS;
-      choices.forEach(pos => {
-        const label = document.createElement("label");
-        label.className = "pill";
-        const input = document.createElement("input");
-        input.type = "checkbox"; input.value = pos;
-        input.checked = selectedDesiredPositions.has(pos);
-        input.addEventListener("change", () => {
-          input.checked ? selectedDesiredPositions.add(pos) : selectedDesiredPositions.delete(pos);
-        });
-        label.appendChild(input);
-        label.append(pos);
-        container.appendChild(label);
-      });
-    }
-
-    function slotKey(dateStr, timeStr) { return `${dateStr}T${timeStr}`; }
-
-    function renderCalendar() {
-      const cal = document.getElementById("calendar");
-      cal.innerHTML = "";
-      const start = new Date(selectedWeekStart);
-      const days = Array.from({length:7}, (_,i)=>{
-        const d = new Date(start); d.setDate(start.getDate()+i); return d; });
-
-      const headerRow = document.createElement("div");
-      headerRow.className = "grid";
-      const headerCell = document.createElement("div"); headerCell.className = "header"; headerCell.textContent = "時間"; headerRow.appendChild(headerCell);
-      const dayNames = ["月","火","水","木","金","土","日"];
-      days.forEach((d,i)=>{
-        const cell = document.createElement("div");
-        cell.className = "header";
-        cell.innerHTML = `${dayNames[i]}<br>${String(d.getMonth()+1)}/${String(d.getDate()).padStart(2,"0")}`;
-        headerRow.appendChild(cell);
-      });
-      cal.appendChild(headerRow);
-
-      timeSlots.forEach(t => {
-        const row = document.createElement("div");
-        row.className = "grid";
-        const timeCell = document.createElement("div"); timeCell.className = "time"; timeCell.textContent = t; row.appendChild(timeCell);
-        days.forEach(d => {
-          const dateStr = d.toISOString().slice(0,10);
-          const cell = document.createElement("div");
-          cell.className = "slot";
-          const key = slotKey(dateStr, t);
-          if (selectedSlots.has(key)) cell.classList.add("selected");
-          cell.addEventListener("click", ()=>{
-            if (!currentStaff) { alert("先にスタッフを選択してください"); return; }
-            if (selectedSlots.has(key)) selectedSlots.delete(key); else selectedSlots.add(key);
-            renderCalendar();
-          });
-          row.appendChild(cell);
-        });
-        cal.appendChild(row);
-      });
-      document.getElementById("week-label").textContent = weekRangeLabel(selectedWeekStart);
-    }
-
-    function loadAvailabilityForCurrent() {
-      if (!currentStaff) { selectedSlots = new Set(); selectedDesiredPositions = new Set(); return; }
-      const avail = state.availabilities.find(a => a.staffId === currentStaff && a.weekStart === selectedWeekStart);
-      selectedSlots = new Set(avail?.slots || []);
-      selectedDesiredPositions = new Set(avail?.desiredPositions || []);
-    }
-
-    function saveAvailability() {
-      if (!currentStaff) { alert("スタッフを選択してください"); return; }
-      const payload = {
-        staffId: currentStaff,
-        staffName: state.staffs.find(s=>s.id===currentStaff)?.name || "",
-        weekStart: selectedWeekStart,
-        slots: Array.from(selectedSlots),
-        desiredPositions: Array.from(selectedDesiredPositions)
+      const addItem = (e) => {
+        e.preventDefault();
+        if (!form.idea.trim()) return;
+        const newItem = { ...form, id: Date.now() };
+        setItems(prev => [...prev, newItem]);
+        setForm({ idea: '', hypothesis: '', platform: '', period: '', workload: '小', kpi: '', status: '未着手', learning: '' });
       };
-      const idx = state.availabilities.findIndex(a => a.staffId === currentStaff && a.weekStart === selectedWeekStart);
-      if (idx >= 0) state.availabilities[idx] = payload; else state.availabilities.push(payload);
-      persist();
-      alert("保存しました（この端末のみ）");
-    }
 
-    function exportAvailability() {
-      if (!currentStaff) { alert("スタッフを選択してください"); return; }
-      saveAvailability();
-      const staff = state.staffs.find(s=>s.id===currentStaff);
-      const name = staff ? staff.name : "staff";
-      const fileName = `availability_${name}_${selectedWeekStart}.json`;
-      const dataStr = JSON.stringify(state.availabilities.find(a=>a.staffId===currentStaff && a.weekStart===selectedWeekStart), null, 2);
-      const blob = new Blob([dataStr], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a"); a.href = url; a.download = fileName; a.click(); URL.revokeObjectURL(url);
-    }
+      const updateItem = (id, patch) => setItems(prev => prev.map(i => i.id === id ? { ...i, ...patch } : i));
+      const cycleStatus = (status) => status === '未着手' ? '実行中' : status === '実行中' ? '完了' : '未着手';
 
-    function addStaff() {
-      const name = document.getElementById("add-name").value.trim();
-      if (!name) { alert("名前は必須です"); return; }
-      const positions = document.getElementById("add-positions").value.split(",").map(s=>s.trim()).filter(Boolean);
-      const max = document.getElementById("add-max").value;
-      const staff = { id: crypto.randomUUID(), name, positions: positions.length?positions:DEFAULT_POSITIONS, maxHours: max?Number(max):null };
-      state.staffs.push(staff);
-      document.getElementById("add-name").value = ""; document.getElementById("add-positions").value = ""; document.getElementById("add-max").value = "";
-      persist();
-      renderStaffList();
-      renderStaffSelect();
-    }
-
-    function renderStaffList() {
-      const container = document.getElementById("staff-list");
-      container.innerHTML = state.staffs.length?"": "スタッフ未登録";
-      state.staffs.forEach(s => {
-        const row = document.createElement("div");
-        row.className = "row";
-        row.innerHTML = `<strong>${s.name}</strong><span class="badge">${s.positions.join(" / ")}</span>` + (s.maxHours?`<span>${s.maxHours}h/週</span>`:"");
-        const del = document.createElement("button"); del.textContent = "削除"; del.className = "secondary";
-        del.addEventListener("click", ()=>{
-          if (!confirm(`削除しますか？ ${s.name}`)) return;
-          state.staffs = state.staffs.filter(st=>st.id!==s.id);
-          state.availabilities = state.availabilities.filter(a=>a.staffId!==s.id);
-          state.assignments = state.assignments.filter(as=>as.staffId!==s.id);
-          if (currentStaff===s.id) currentStaff=null;
-          persist(); renderStaffList(); renderStaffSelect(); renderCalendar();
-        });
-        row.appendChild(del);
-        container.appendChild(row);
-      });
-    }
-
-    function addRequirement() {
-      const date = document.getElementById("req-date").value;
-      const start = document.getElementById("req-start").value;
-      const end = document.getElementById("req-end").value;
-      const position = document.getElementById("req-position").value.trim();
-      const needed = Number(document.getElementById("req-needed").value);
-      if (!date || !start || !end || !position || !needed) { alert("すべて入力してください"); return; }
-      const req = { id: crypto.randomUUID(), date, start, end, position, needed };
-      state.requirements.push(req);
-      persist();
-      document.getElementById("req-date").value=""; document.getElementById("req-start").value=""; document.getElementById("req-end").value=""; document.getElementById("req-position").value=""; document.getElementById("req-needed").value="";
-      renderRequirementList();
-    }
-
-    function renderRequirementList() {
-      const list = document.getElementById("req-list");
-      list.innerHTML = "";
-      if (!state.requirements.length) { list.textContent = "まだありません"; return; }
-      state.requirements
-        .slice()
-        .sort((a,b)=> a.date===b.date ? a.start.localeCompare(b.start) : a.date.localeCompare(b.date))
-        .forEach(req => {
-          const div = document.createElement("div");
-          div.className = "row";
-          div.innerHTML = `<strong>${req.date} ${req.start}-${req.end}</strong><span class="badge">${req.position}</span><span>${req.needed}名</span>`;
-          const del = document.createElement("button"); del.textContent="削除"; del.className="secondary";
-          del.addEventListener("click", ()=>{
-            state.requirements = state.requirements.filter(r=>r.id!==req.id);
-            persist(); renderRequirementList();
-          });
-          div.appendChild(del);
-          list.appendChild(div);
-        });
-    }
-
-    function importAvailabilityFiles(files) {
-      if (!files.length) { alert("ファイルを選択してください"); return; }
-      let count = 0;
-      Array.from(files).forEach(file => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          try {
-            const data = JSON.parse(reader.result);
-            if (!data.staffId || !data.weekStart || !Array.isArray(data.slots)) throw new Error("形式不正");
-            const idx = state.availabilities.findIndex(a=>a.staffId===data.staffId && a.weekStart===data.weekStart);
-            if (idx>=0) state.availabilities[idx]=data; else state.availabilities.push(data);
-            if (!state.staffs.find(s=>s.id===data.staffId)) {
-              state.staffs.push({ id: data.staffId, name: data.staffName||`スタッフ${data.staffId.slice(0,4)}`, positions: data.desiredPositions?.length?data.desiredPositions:DEFAULT_POSITIONS, maxHours:null });
-            }
-            count++;
-            persist();
-            renderStaffList(); renderStaffSelect();
-            document.getElementById("import-summary").textContent = `${state.availabilities.length}件の希望を保持`;
-          } catch(err) { alert(`${file.name}: ${err.message}`); }
-        };
-        reader.readAsText(file);
-      });
-    }
-
-    function requirementSlots(req) {
-      const slots = [];
-      const start = req.start; const end = req.end;
-      let current = start;
-      const step = (time) => {
-        const [h,m] = time.split(":").map(Number);
-        const date = new Date(0,0,0,h,m+30);
-        return `${String(date.getHours()).padStart(2,"0")}:${String(date.getMinutes()).padStart(2,"0")}`;
+      const statusColor = (s) => {
+        if (s === '完了') return 'bg-emerald-100 text-emerald-700';
+        if (s === '実行中') return 'bg-blue-100 text-blue-700';
+        return 'bg-gray-100 text-gray-700';
       };
-      while (current < end) {
-        slots.push(current);
-        current = step(current);
-      }
-      return slots;
-    }
 
-    function totalAssignedMinutes(assignMap, staffId) {
-      return assignMap.get(staffId) || 0;
-    }
+      return (
+        <div className="space-y-4">
+          <SectionCard title="Step 1: 仮説入力" className="mb-2">
+            <form className="grid md:grid-cols-2 gap-4" onSubmit={addItem}>
+              {['idea','hypothesis','platform','period','workload','kpi'].map((key) => (
+                <label key={key} className="font-semibold text-gray-800">
+                  {key === 'idea' ? 'アイデア名' : key === 'hypothesis' ? '検証可能な仮説（If, Then）' : key === 'platform' ? 'プラットフォーム' : key === 'period' ? '期間' : key === 'workload' ? '作業量' : 'KPI'}
+                  {key === 'workload' ? (
+                    <select className="mt-1 w-full border rounded-lg p-3 bg-white text-gray-900" value={form[key]} onChange={(e)=>setForm({...form,[key]:e.target.value})}>
+                      {['小','中','大'].map(opt => <option key={opt}>{opt}</option>)}
+                    </select>
+                  ) : (
+                    <input className="mt-1 w-full border rounded-lg p-3 bg-white text-gray-900" value={form[key]} onChange={(e)=>setForm({...form,[key]:e.target.value})} />
+                  )}
+                </label>
+              ))}
+              <div className="md:col-span-2 flex justify-end">
+                <button className="px-4 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700">カードを追加</button>
+              </div>
+            </form>
+          </SectionCard>
 
-    function runAssignment() {
-      const assignments = [];
-      const loadAvail = (staffId, date) => {
-        const week = weekStartStr(date);
-        return state.availabilities.find(a=>a.staffId===staffId && a.weekStart===week);
+          <SectionCard title="Step 2 & 3: 仮説カード一覧">
+            <div className="grid md:grid-cols-2 gap-3">
+              {items.map(item => (
+                <div key={item.id} className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input className="font-bold text-lg flex-1 bg-white border rounded px-2 py-1" value={item.idea} onChange={(e)=>updateItem(item.id,{idea:e.target.value})} />
+                    <button className={`text-xs px-3 py-1 rounded-full ${statusColor(item.status)}`} onClick={()=>updateItem(item.id,{status:cycleStatus(item.status)})}>{item.status}</button>
+                  </div>
+                  <textarea className="w-full border rounded px-2 py-1 bg-white" value={item.hypothesis} onChange={(e)=>updateItem(item.id,{hypothesis:e.target.value})} />
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <input className="border rounded px-2 py-1 bg-white" value={item.platform} onChange={(e)=>updateItem(item.id,{platform:e.target.value})} placeholder="プラットフォーム" />
+                    <input className="border rounded px-2 py-1 bg-white" value={item.period} onChange={(e)=>updateItem(item.id,{period:e.target.value})} placeholder="期間" />
+                    <select className="border rounded px-2 py-1 bg-white" value={item.workload} onChange={(e)=>updateItem(item.id,{workload:e.target.value})}>
+                      {['小','中','大'].map(opt => <option key={opt}>{opt}</option>)}
+                    </select>
+                    <input className="border rounded px-2 py-1 bg-white" value={item.kpi} onChange={(e)=>updateItem(item.id,{kpi:e.target.value})} placeholder="KPI" />
+                  </div>
+                  {item.status === '完了' && (
+                    <textarea className="w-full border rounded px-2 py-2 bg-white" placeholder="学びメモ" value={item.learning || ''} onChange={(e)=>updateItem(item.id,{learning:e.target.value})} />
+                  )}
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+        </div>
+      );
+    };
+
+    const defaultLabels = { reach: 'リーチ', response: '反応数', revenue: '売上' };
+
+    const ConfidenceBoard = ({ logs, setLogs, trackers, setTrackers, labels, setLabels }) => {
+      const [entry, setEntry] = useState({ idea:'', reach:'', response:'', revenue:'', note:'' });
+      const [detailOpen, setDetailOpen] = useState(null);
+      const [modalOpen, setModalOpen] = useState(false);
+      const [labelForm, setLabelForm] = useState(labels);
+
+      const addLog = (e) => {
+        e.preventDefault();
+        if (!entry.idea.trim()) return;
+        const newLog = { ...entry, id: Date.now(), created: new Date().toISOString(), success:'', failure:'', feedback:'' };
+        setLogs(prev => [...prev, newLog]);
+        setEntry({ idea:'', reach:'', response:'', revenue:'', note:'' });
       };
-      const assignMinutes = new Map();
-      const reqs = state.requirements.slice().sort((a,b)=> a.date===b.date ? a.start.localeCompare(b.start) : a.date.localeCompare(b.date));
-      reqs.forEach(req => {
-        const requiredSlots = requirementSlots(req).map(t=>slotKey(req.date, t));
-        const candidates = state.staffs.filter(st => st.positions.includes(req.position)).filter(st => {
-          const av = loadAvail(st.id, new Date(req.date));
-          if (!av) return false;
-          const set = new Set(av.slots);
-          return requiredSlots.every(s=>set.has(s));
-        });
-        candidates.sort((a,b)=> totalAssignedMinutes(assignMinutes,a.id) - totalAssignedMinutes(assignMinutes,b.id) || (Math.random()>0.5?1:-1));
-        const assigned = [];
-        for (const cand of candidates) {
-          if (assigned.length >= req.needed) break;
-          assigned.push(cand.id);
-          const duration = requirementSlots(req).length * 30;
-          assignMinutes.set(cand.id, totalAssignedMinutes(assignMinutes,cand.id)+duration);
-        }
-        const unfilled = Math.max(0, req.needed - assigned.length);
-        assignments.push({ requirementId: req.id, assigned, unfilled });
-      });
-      state.assignments = assignments;
-      persist();
-      renderAssignments();
-      alert("割当が完了しました");
-    }
 
-    function renderAssignments() {
-      const table = document.getElementById("assign-table");
-      table.innerHTML = "";
-      const header = document.createElement("tr");
-      ["日付", "時間", "ポジション", "割当", "未充足"].forEach(t=>{ const th=document.createElement("th"); th.textContent=t; header.appendChild(th);});
-      table.appendChild(header);
-      const getAssignment = (reqId) => state.assignments.find(a=>a.requirementId===reqId);
-      const rows = state.requirements.slice().sort((a,b)=> a.date===b.date ? a.start.localeCompare(b.start) : a.date.localeCompare(b.date));
-      if (!rows.length) { const tr=document.createElement("tr"); const td=document.createElement("td"); td.colSpan=5; td.textContent="必要枠を追加してください"; tr.appendChild(td); table.appendChild(tr); return; }
-      rows.forEach(req => {
-        const asn = getAssignment(req.id);
-        const tr = document.createElement("tr");
-        const names = (asn?.assigned||[]).map(id => state.staffs.find(s=>s.id===id)?.name || "?");
-        const filledCell = document.createElement("td");
-        filledCell.innerHTML = names.length? names.map(n=>`<span class="badge">${n}</span>`).join(" ") : "";
-        const missCell = document.createElement("td");
-        const miss = asn? asn.unfilled : req.needed;
-        missCell.textContent = miss > 0 ? `${miss} 未充足` : "0";
-        if (miss>0) missCell.className = "missing"; else filledCell.className = "success";
-        [req.date, `${req.start} - ${req.end}`, req.position, filledCell, missCell].forEach((v,i)=>{
-          const td = v instanceof HTMLElement ? v : (()=>{ const t=document.createElement("td"); t.textContent=v; return t;})();
-          tr.appendChild(td);
-        });
-        table.appendChild(tr);
-      });
-    }
+      const updateLog = (id, patch) => setLogs(prev => prev.map(l => l.id === id ? { ...l, ...patch } : l));
 
-    function exportBackup() {
-      const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a"); a.href=url; a.download="shift_backup.json"; a.click(); URL.revokeObjectURL(url);
-    }
-
-    function importBackup(file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (!confirm("現在のデータを上書きしますか？")) return;
-        try {
-          const data = JSON.parse(reader.result);
-          state.staffs = data.staffs||[];
-          state.availabilities = data.availabilities||[];
-          state.requirements = data.requirements||[];
-          state.assignments = data.assignments||[];
-          selectedWeekStart = data.currentWeekStart || weekStartStr(new Date());
-          persist();
-          renderAll();
-        } catch(e) { alert("読み込み失敗: "+e.message); }
+      const ensureTracker = (idea) => {
+        if (!trackers.find(t => t.idea === idea)) setTrackers(prev => [...prev, { idea, confidence:50, direction:'プラス', reason:'' }]);
       };
-      reader.readAsText(file);
-    }
 
-    function renderImportSummary() {
-      const unique = new Set(state.availabilities.map(a=>a.staffId+"_"+a.weekStart));
-      document.getElementById("import-summary").textContent = `${unique.size}件の希望を保持`;
-    }
+      const updateTracker = (idea, patch) => setTrackers(prev => prev.map(t => t.idea === idea ? { ...t, ...patch } : t));
 
-    function renderAll() {
-      renderStaffSelect();
-      loadAvailabilityForCurrent();
-      renderPositionsPicker();
-      renderCalendar();
-      renderStaffList();
-      renderRequirementList();
-      renderAssignments();
-      renderImportSummary();
-    }
+      const openModal = () => { setLabelForm(labels); setModalOpen(true); };
+      const saveLabels = () => { setLabels(labelForm); setModalOpen(false); };
 
-    // event wiring
-    document.getElementById("staff-select").addEventListener("change", (e)=>{ currentStaff = e.target.value; loadAvailabilityForCurrent(); renderPositionsPicker(); renderCalendar(); });
-    document.getElementById("save-local").addEventListener("click", saveAvailability);
-    document.getElementById("export-availability").addEventListener("click", exportAvailability);
-    document.getElementById("add-staff").addEventListener("click", addStaff);
-    document.getElementById("add-req").addEventListener("click", addRequirement);
-    document.getElementById("run-assign").addEventListener("click", runAssignment);
-    document.getElementById("export-backup").addEventListener("click", exportBackup);
-    document.getElementById("import-backup").addEventListener("click", ()=>{
-      const f = document.getElementById("import-backup-file").files?.[0];
-      if (!f) { alert("ファイルを選択してください"); return; }
-      importBackup(f);
-    });
-    document.getElementById("import-btn").addEventListener("click", ()=>{
-      const files = document.getElementById("import-files").files;
-      importAvailabilityFiles(files);
-    });
-    document.getElementById("week-prev").addEventListener("click", ()=>{ const d=new Date(selectedWeekStart); d.setDate(d.getDate()-7); selectedWeekStart=weekStartStr(d); loadAvailabilityForCurrent(); renderCalendar(); });
-    document.getElementById("week-next").addEventListener("click", ()=>{ const d=new Date(selectedWeekStart); d.setDate(d.getDate()+7); selectedWeekStart=weekStartStr(d); loadAvailabilityForCurrent(); renderCalendar(); });
-    document.getElementById("tab-staff").addEventListener("click", ()=>{ document.getElementById("tab-staff").classList.add("active"); document.getElementById("tab-owner").classList.remove("active"); document.getElementById("staff-mode").style.display="block"; document.getElementById("owner-mode").style.display="none"; });
-    document.getElementById("tab-owner").addEventListener("click", ()=>{ document.getElementById("tab-owner").classList.add("active"); document.getElementById("tab-staff").classList.remove("active"); document.getElementById("staff-mode").style.display="none"; document.getElementById("owner-mode").style.display="block"; });
+      useEffect(() => { if (entry.idea) ensureTracker(entry.idea); }, [entry.idea]);
 
-    renderAll();
+      return (
+        <div className="space-y-4">
+          <SectionCard title="Step 1: 実験記録">
+            <div className="flex justify-end mb-2"><button className="px-3 py-2 bg-gray-100 rounded-lg border" onClick={openModal}>指標を編集</button></div>
+            <form className="grid md:grid-cols-2 gap-4" onSubmit={addLog}>
+              {['idea','reach','response','revenue','note'].map(key => (
+                <label key={key} className="font-semibold text-gray-800">
+                  {key === 'idea' ? 'アイデア名' : key === 'note' ? 'メモ' : labels[key]}
+                  <input className="mt-1 w-full border rounded-lg p-3 bg-white text-gray-900" value={entry[key]} onChange={(e)=>setEntry({...entry,[key]:e.target.value})} />
+                </label>
+              ))}
+              <div className="md:col-span-2 flex justify-end"><button className="px-4 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700">ログを追加</button></div>
+            </form>
+          </SectionCard>
+
+          <SectionCard title="Step 2: 分析 (ログ一覧)">
+            <div className="space-y-2">
+              {logs.map(log => (
+                <div key={log.id} className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm">
+                  <div className="flex justify-between items-center">
+                    <div className="font-bold">{log.idea}</div>
+                    <button className="text-blue-600" onClick={()=>setDetailOpen(detailOpen===log.id?null:log.id)}>{detailOpen===log.id?'閉じる':'詳細'}</button>
+                  </div>
+                  <div className="text-sm text-gray-700 mt-1">{labels.reach}: {log.reach} / {labels.response}: {log.response} / {labels.revenue}: {log.revenue}</div>
+                  <div className="text-sm text-gray-600 mt-1">{log.note}</div>
+                  {detailOpen === log.id && (
+                    <div className="grid md:grid-cols-3 gap-2 mt-3 text-sm">
+                      <textarea className="border rounded px-2 py-2 bg-white" placeholder="成功要因" value={log.success} onChange={(e)=>updateLog(log.id,{success:e.target.value})} />
+                      <textarea className="border rounded px-2 py-2 bg-white" placeholder="失敗要因" value={log.failure} onChange={(e)=>updateLog(log.id,{failure:e.target.value})} />
+                      <textarea className="border rounded px-2 py-2 bg-white" placeholder="定性フィードバック" value={log.feedback} onChange={(e)=>updateLog(log.id,{feedback:e.target.value})} />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+
+          <SectionCard title="Step 3: ベイズ更新 (自信度トラッカー)">
+            <div className="space-y-3">
+              {trackers.map(t => (
+                <div key={t.idea} className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm">
+                  <div className="font-bold mb-1">{t.idea}</div>
+                  <input type="range" min="0" max="100" value={t.confidence} className="w-full" onChange={(e)=>updateTracker(t.idea,{confidence:Number(e.target.value)})} />
+                  <div className="flex justify-between text-sm text-gray-700"><span>自信度: {t.confidence}%</span><select className="border rounded px-2 py-1 bg-white" value={t.direction} onChange={(e)=>updateTracker(t.idea,{direction:e.target.value})}><option>プラス</option><option>マイナス</option></select></div>
+                  <textarea className="w-full border rounded px-2 py-2 mt-2 bg-white" placeholder="更新理由" value={t.reason || ''} onChange={(e)=>updateTracker(t.idea,{reason:e.target.value})} />
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+
+          {modalOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl p-5 w-full max-w-md shadow-xl space-y-3">
+                <div className="text-lg font-bold">指標ラベルを編集</div>
+                {['reach','response','revenue'].map(key => (
+                  <label key={key} className="font-semibold text-gray-800">
+                    {labels[key]}
+                    <input className="mt-1 w-full border rounded-lg p-3 bg-white text-gray-900" value={labelForm[key]} onChange={(e)=>setLabelForm({...labelForm,[key]:e.target.value})} />
+                  </label>
+                ))}
+                <div className="flex justify-end gap-2">
+                  <button className="px-4 py-2 rounded-lg border" onClick={()=>setModalOpen(false)}>キャンセル</button>
+                  <button className="px-4 py-2 rounded-lg bg-blue-600 text-white" onClick={saveLabels}>保存</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const App = () => {
+      const [activeTab, setActiveTab] = useState('matrix');
+      const [ideas, setIdeas] = useState(() => load('ideas', []));
+      const [filter, setFilter] = useState('');
+      const [projectName, setProjectName] = useState(() => load('projectName', ''));
+      const [hypotheses, setHypotheses] = useState(() => load('hypotheses', []));
+      const [logs, setLogs] = useState(() => load('logs', []));
+      const [trackers, setTrackers] = useState(() => load('trackers', []));
+      const [labels, setLabels] = useState(() => load('labels', defaultLabels));
+
+      useEffect(() => save('ideas', ideas), [ideas]);
+      useEffect(() => save('projectName', projectName), [projectName]);
+      useEffect(() => save('hypotheses', hypotheses), [hypotheses]);
+      useEffect(() => save('logs', logs), [logs]);
+      useEffect(() => save('trackers', trackers), [trackers]);
+      useEffect(() => save('labels', labels), [labels]);
+
+      const addIdea = (idea) => setIdeas(prev => [...prev, idea]);
+      const deleteIdea = (id) => setIdeas(prev => prev.filter(i => i.id !== id));
+
+      return (
+        <div className="max-w-6xl mx-auto px-4 py-6">
+          <header className="mb-6">
+            <h1 className="text-3xl font-extrabold">バンディット×ベイズ戦略</h1>
+            <p className="text-gray-600">Impact × Cost で仕分けし、仮説検証とベイズ更新までを一気通貫で管理。</p>
+          </header>
+
+          <div className="grid grid-cols-3 gap-2 mb-5">
+            <button className={`py-3 rounded-xl font-bold ${activeTab==='matrix' ? 'bg-blue-600 text-white' : 'bg-white border'}`} onClick={()=>setActiveTab('matrix')}>インパクト×コスト</button>
+            <button className={`py-3 rounded-xl font-bold ${activeTab==='hypo' ? 'bg-blue-600 text-white' : 'bg-white border'}`} onClick={()=>setActiveTab('hypo')}>仮説検証ボード</button>
+            <button className={`py-3 rounded-xl font-bold ${activeTab==='confidence' ? 'bg-blue-600 text-white' : 'bg-white border'}`} onClick={()=>setActiveTab('confidence')}>自信度分析ボード</button>
+          </div>
+
+          {activeTab === 'matrix' && (
+            <div className="space-y-2">
+              <IdeaForm onAdd={addIdea} />
+              <ProjectTitle projectName={projectName} setProjectName={setProjectName} />
+              <Matrix ideas={ideas} />
+              <IdeaList ideas={ideas} onDelete={deleteIdea} filter={filter} setFilter={setFilter} />
+            </div>
+          )}
+
+          {activeTab === 'hypo' && (
+            <HypothesisBoard items={hypotheses} setItems={setHypotheses} />
+          )}
+
+          {activeTab === 'confidence' && (
+            <ConfidenceBoard logs={logs} setLogs={setLogs} trackers={trackers} setTrackers={setTrackers} labels={labels} setLabels={setLabels} />
+          )}
+        </div>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
 </body>
 </html>
