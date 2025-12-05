@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>バンディット×ベイズ戦略</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" />
+    <script async src="https://esm.sh/lucide-react@0.374.0?dev&bundle"></script>
+    <script src="https://esm.sh/@babel/standalone@7.24.4"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "react": "https://esm.sh/react@18?dev",
+          "react-dom/client": "https://esm.sh/react-dom@18/client?dev"
+        }
+      }
+    </script>
+    <style>
+      .animate-fadeIn { animation: fadeIn 0.35s ease; }
+      .animate-slideUp { animation: slideUp 0.35s ease; }
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes slideUp { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    </style>
+  </head>
+  <body class="bg-slate-50">
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module" data-presets="typescript,react" src="./types.ts"></script>
+    <script type="text/babel" data-type="module" data-presets="typescript,react" src="./constants.ts"></script>
+    <script type="text/babel" data-type="module" data-presets="typescript,react" src="./services/storage.ts"></script>
+    <script type="text/babel" data-type="module" data-presets="typescript,react" src="./components/QuickLogPanel.tsx"></script>
+    <script type="text/babel" data-type="module" data-presets="typescript,react" src="./components/HypothesisBoard.tsx"></script>
+    <script type="text/babel" data-type="module" data-presets="typescript,react" src="./components/ConfidenceBoard.tsx"></script>
+    <script type="text/babel" data-type="module" data-presets="typescript,react" src="./components/IdeaMatrix.tsx"></script>
+    <script type="text/babel" data-type="module" data-presets="typescript,react" src="./App.tsx"></script>
+    <script type="text/babel" data-type="module" data-presets="typescript,react" src="./main.tsx"></script>
+  </body>
+</html>
